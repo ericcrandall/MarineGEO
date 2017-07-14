@@ -11,47 +11,97 @@ library(plyr)
 library(dplyr)
 library(ggmap)
 library(readxl)
-setwd("~/google_drive/MarineGEO/")
+library(lubridate)
+filedir<-"~/google_drive/MarineGEO"
 
-bbox<-c(left=-157.855024,bottom= 21.4079,right=-157.756789, top=21.52)
+bbox<-c(left=-157.85,bottom= 21.38,right=-157.75, top=21.55)
 dmap <- get_map(location = bbox, maptype = "satellite", source = "google")
 
 ```
 
-## Fish
+# Fish
 
+## Import and Format
+
+### Import
 ```{r Fish_import}
-#read in the data
-fish_samples<-read.csv(file="~/google_drive/MarineGEO/Fish/KANEOHOE_SI_FIMS-2_samples.csv",stringsAsFactors = F)
+# First go through and make sure all stations have Lat/Longs, or as many as possible
+#read in the sample data, skipping first 3 lines of other headers. Format all times as hh:mm in Excel, paste into textwrangler if they need homogenization (i.e. multiple formats of times)
 
-fish_events<-read.csv(file="~/google_drive/MarineGEO/Fish/KANEOHOE_SI_FIMS-2_events.csv",stringsAsFactors = F)
+fish_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Fish/KANEOHOE_SI_FIMS_20170714.xlsx",sheet="Specimen information",skip=3)
+
+fish_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Fish/KANEOHOE_SI_FIMS_20170714.xlsx",sheet="Locality information",skip=3)
+
+#remove columns without mapped DwC terms mapped
+fish_samples<-fish_samples[,-grep(pattern = "^X",x = names(fish_samples),perl=T)]
+fish_events<-fish_events[,-grep(pattern = "^X",x = names(fish_events),perl=T)]
 
 #remove records without occurrenceIDs (temp before final dataset)
-#fish_samples<-fish_samples[-which(fish_samples$occurrenceID==""),]
-#translate fieldIDs to eventIDs (temp)
+fish_samples<-fish_samples[-which(is.na(fish_samples$occurrenceID)),]
+#translate fieldIDs to eventIDs
 fish_samples$eventID<-gsub("LRP 17-","KANF0",fish_samples$eventID)
 
 #use ddply to lump all materialSampleIDs into a single field, separated by a |
-fish1<-ddply(fish_samples, "occurrenceID", transform, materialSampleID = paste(materialSampleID, collapse = "|"))
+fish_samples<-ddply(fish_samples, "occurrenceID", transform, materialSampleID = paste(materialSampleID, collapse = "|"))
 
 #keep only the first instance of each occurrenceID
-fish2<-fish1[!duplicated(fish1$occurrenceID),]
-
-#join the event data onto the occurrence data
-fish<-left_join(fish,fishevents,by="eventID")
-
-test
+fish_samples<-fish_samples1[!duplicated(fish_samples1$occurrenceID),]
 ```
 
+### Format events to schema
 
+```{r format events}
+fish_events$decimalLatitude<-round(as.numeric(fish_events$decimalLatitude),digits = 4)
+fish_events$decimalLongitude<-round(as.numeric(fish_events$decimalLongitude),digits = 4)
+fish_events$georeferenceProtocol[which(fish_events$georeferenceProtocol=="GoogleEarth")]<-"Google Earth" ##Ask Diane to fill this in.
+class(fish_events$coordinateUncertaintyInMeters) # ask Diane to fill this in.
+fish_events$eventDate<-dmy(fish_events$eventDate) # make sure this imports correctly
+class(fish_events$maximumDepthInMeters) #some missing. ask Diane to fill this in
+class(fish_events$minimumDepthInMeters)#some missing. ask Diane to fill this in
+class(fish_events$recordedBy) #some missing. ask Diane to fill this in
+class(fish_events$samplingProtocol) #some missing. ask Diane to fill this in
+class(fish_events$habitat) #needs to be formatted according to schema - Geomorph zone, substrate, biotic
+fish_events$year<-year(fish_events$eventDate)
+fish_events$month<-month(fish_events$eventDate)
+fish_events$day<-day(fish_events$eventDate)
+
+#Recommended fields
+class(fish_events$eventRemarks)
+class(fish_events$locality)
+class(fish_events$eventTime)
+class(fish_events$eventRemarks)
+class(fish_events$eventRemarks)
+class(fish_events$verbatimCoordinates)
+class(fish_events$eventMedia)
+```
+### Format samples to schema
+
+```{r format samples}
+
+class(fish_samples$occurrenceID)
+class(fish_samples$basisOfRecord)
+class(fish_samples$eventID)
+class(fish_samples$scientificName) #eventually parse this into taxon categories?
+class(fish_samples$taxonRank) #using this
+class(fish_samples$identifiedBy)
+class(fish_samples$individualCount)
+class(fish_samples$institutionID)
+fish_samples$organismScope<-"organism"
+
+
+```
+
+### Join the event data onto the occurrence data
+
+```{r}
+fish<-left_join(fish_samples1,fish_events,by="eventID")
+```
+
+## Make a Map
 
 ```{r Fish_maps}
-
-
 #optionally make it from the points provided
 #bbox<-make_bbox(lon=fish2$decimalLongitude,lat=fish2$decimalLatitude)
-
-
 #by individual
 fish2<-fish %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(count=n()) 
 
@@ -59,37 +109,85 @@ fish2<-fish %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(count=
 fish3 <- fish %>% group_by(scientificName, decimalLatitude, decimalLongitude) %>% summarize(count=n())
 
 #richness
-fish4<-fish5 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richness=n())
+fish4<-fish3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richness=n())
 
-fish6<-left_join(fish3,fish5)
+fish6<-left_join(fish2,fish4)
 
 
-ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=2*count, color=richness)) + scale_color_gradient(low = "yellow", high="red")
+ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank())
 
 
 
 
 ```
-## Algae
+# Algae
 
+## Import and Format
+
+### Import
 ```{r Algae_import}
-algae_sample<-read_excel("./algae/MarineGEOHI_bioassessment_master_KANA.xlsx", sheet="Sample")
+#Add in KANI and KANM stations to events, edit eventIDs for capitalization
 
-algae_station<-read_excel("./algae/MarineGEOHI_bioassessment_master_KANA.xlsx", sheet="Station")
+algae_samples<-read_excel("/Users/eric/google_drive/MarineGEO/algae/MarineGEOHI_bioassessment_master_KANA.xlsx", sheet="Sample")
 
-#temp remove KANI stations
-algae_station<-algae_station[1:29,]
-
-
-#join the event data onto the occurrence data
-algae<-left_join(algae_sample,algae_station,by="eventID")
+algae_events<-read_excel("/Users/eric/google_drive/MarineGEO/algae/MarineGEOHI_bioassessment_master_KANA.xlsx", sheet="Station")
 ```
 
+### Format events to schema
+
+```{r Format events}
+#round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
+algae_events$decimalLatitude<-round(as.numeric(algae_events$decimalLatitude),digits = 4)
+algae_events$decimalLongitude<-abs(round(as.numeric(algae_events$decimalLongitude),digits = 4))*-1
+
+class(algae_events$coordinateUncertaintyInMeters) #good
+class(algae_events$maximumDepthInMeters) #some missing. ask Melinda to fill this in
+class(algae_events$minimumDepthInMeters)#some missing. ask Diane to fill this in
+class(algae_events$recordedBy) #some missing. ask Diane to fill this in
+class(algae_events$samplingProtocol) #some missing. ask Diane to fill this in
+class(algae_events$`habitat: biotic`)
+class(algae_events$`habitat: geomorphological zone`)
+class(algae_events$`habitat: substrate`)
+
+
+#Recommended fields
+class(algae_events$eventRemarks)
+class(algae_events$locality)
+class(algae_events$eventTime)
+class(algae_events$eventRemarks)
+class(algae_events$verbatimCoordinates)
+class(algae_events$eventMedia)
+```
+
+### Format samples to schema
+
+```{r format samples}
+
+class(algae_samples$occurrenceID)
+algae_samples$basisOfRecord<-"specimen"
+class(algae_samples$eventID)
+class(algae_samples$scientificName) #eventually parse this into taxon categories?
+class(algae_samples$taxonRank) #using this
+class(algae_samples$identifiedBy)
+class(algae_samples$individualCount)
+algae_samples$institutionID<-"USNM"
+
+
+
+```
+
+
+
+
+### join the event data onto the occurrence data
+
+```{ join}
+algae<-left_join(algae_samples,algae_events,by="eventID")
+```
+
+## Make A Map
 ```{r algae_maps}
 
-
-
-#dmap <- get_map(location = bbox, maptype = "satellite", source = "google")
 
 #by individual
 algae2<-algae %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(count=n()) 
@@ -105,8 +203,13 @@ algae5<-left_join(algae2,algae4)
 algae5<-algae5[-which(is.na(algae5$decimalLatitude)),]
 #algae5<-algae5[-which(algae5$scientificName=="?"),]
 
+algae5[4,4]<-1
+algae5[11,4]<-2
+extra<-algae5[33,]
+algae5<-algae5[-33,] #remove outlier
 
-algMAP<-ggmap(dmap) + geom_point(data = algae5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "yellow", high="red")
+
+ggmap(dmap) + geom_point(data = algae5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) + geom_point(data=extra, mapping=aes(x = decimalLongitude, y = decimalLatitude, size=30, color=30))
 
 #ggsave(alMAP,filename="algae_map2.pdf"")
 ```
