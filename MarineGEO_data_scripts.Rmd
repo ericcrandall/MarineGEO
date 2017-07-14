@@ -140,11 +140,12 @@ algae_events<-read_excel("/Users/eric/google_drive/MarineGEO/algae/MarineGEOHI_b
 algae_events$decimalLatitude<-round(as.numeric(algae_events$decimalLatitude),digits = 4)
 algae_events$decimalLongitude<-abs(round(as.numeric(algae_events$decimalLongitude),digits = 4))*-1
 
+class(algae_events$geoReferenceProtocol) #good
 class(algae_events$coordinateUncertaintyInMeters) #good
 class(algae_events$maximumDepthInMeters) #some missing. ask Melinda to fill this in
-class(algae_events$minimumDepthInMeters)#some missing. ask Diane to fill this in
-class(algae_events$recordedBy) #some missing. ask Diane to fill this in
-class(algae_events$samplingProtocol) #some missing. ask Diane to fill this in
+class(algae_events$minimumDepthInMeters)#some missing. ask Melinda to fill this in
+class(algae_events$recordedBy) #some missing. ask Melinda to fill this in
+class(algae_events$samplingProtocol) #some missing. ask Melinda to fill this in
 class(algae_events$`habitat: biotic`)
 class(algae_events$`habitat: geomorphological zone`)
 class(algae_events$`habitat: substrate`)
@@ -209,9 +210,11 @@ extra<-algae5[33,]
 algae5<-algae5[-33,] #remove outlier
 
 
-ggmap(dmap) + geom_point(data = algae5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) + geom_point(data=extra, mapping=aes(x = decimalLongitude, y = decimalLatitude, size=30, color=30))
+almap<-ggmap(dmap) + geom_point(data = algae5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) + geom_point(data=extra, mapping=aes(x = decimalLongitude, y = decimalLatitude, size=30, color=30))
 
-#ggsave(alMAP,filename="algae_map2.pdf"")
+almap
+
+#ggsave(almap,filename="algae_map2.pdf")
 ```
 
 
