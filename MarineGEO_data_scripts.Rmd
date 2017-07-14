@@ -1,0 +1,118 @@
+---
+title: "MarineGEO Data Formatting"
+author: "Eric D. Crandall"
+date: "5/29/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(plyr)
+library(dplyr)
+library(ggmap)
+library(readxl)
+setwd("~/google_drive/MarineGEO/")
+
+bbox<-c(left=-157.855024,bottom= 21.4079,right=-157.756789, top=21.52)
+dmap <- get_map(location = bbox, maptype = "satellite", source = "google")
+
+```
+
+## Fish
+
+```{r Fish_import}
+#read in the data
+fish_samples<-read.csv(file="~/google_drive/MarineGEO/Fish/KANEOHOE_SI_FIMS-2_samples.csv",stringsAsFactors = F)
+
+fish_events<-read.csv(file="~/google_drive/MarineGEO/Fish/KANEOHOE_SI_FIMS-2_events.csv",stringsAsFactors = F)
+
+#remove records without occurrenceIDs (temp before final dataset)
+#fish_samples<-fish_samples[-which(fish_samples$occurrenceID==""),]
+#translate fieldIDs to eventIDs (temp)
+fish_samples$eventID<-gsub("LRP 17-","KANF0",fish_samples$eventID)
+
+#use ddply to lump all materialSampleIDs into a single field, separated by a |
+fish1<-ddply(fish_samples, "occurrenceID", transform, materialSampleID = paste(materialSampleID, collapse = "|"))
+
+#keep only the first instance of each occurrenceID
+fish2<-fish1[!duplicated(fish1$occurrenceID),]
+
+#join the event data onto the occurrence data
+fish<-left_join(fish,fishevents,by="eventID")
+
+```
+
+
+
+```{r Fish_maps}
+
+
+#optionally make it from the points provided
+#bbox<-make_bbox(lon=fish2$decimalLongitude,lat=fish2$decimalLatitude)
+
+
+#by individual
+fish2<-fish %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(count=n()) 
+
+#by species
+fish3 <- fish %>% group_by(scientificName, decimalLatitude, decimalLongitude) %>% summarize(count=n())
+
+#richness
+fish4<-fish5 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richness=n())
+
+fish6<-left_join(fish3,fish5)
+
+
+ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=2*count, color=richness)) + scale_color_gradient(low = "yellow", high="red")
+
+
+
+
+```
+## Algae
+
+```{r Algae_import}
+algae_sample<-read_excel("./algae/MarineGEOHI_bioassessment_master_KANA.xlsx", sheet="Sample")
+
+algae_station<-read_excel("./algae/MarineGEOHI_bioassessment_master_KANA.xlsx", sheet="Station")
+
+#temp remove KANI stations
+algae_station<-algae_station[1:29,]
+
+
+#join the event data onto the occurrence data
+algae<-left_join(algae_sample,algae_station,by="eventID")
+```
+
+```{r algae_maps}
+
+
+
+#dmap <- get_map(location = bbox, maptype = "satellite", source = "google")
+
+#by individual
+algae2<-algae %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(count=n()) 
+
+#by species
+algae3 <- algae[-which(algae$scientificName=="?"),] %>% group_by(scientificName, decimalLatitude, decimalLongitude) %>% summarize(count=n())
+
+#richness
+algae4<-algae3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richness=n())
+
+algae5<-left_join(algae2,algae4)
+
+algae5<-algae5[-which(is.na(algae5$decimalLatitude)),]
+#algae5<-algae5[-which(algae5$scientificName=="?"),]
+
+
+algMAP<-ggmap(dmap) + geom_point(data = algae5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "yellow", high="red")
+
+#ggsave(alMAP,filename="algae_map2.pdf"")
+```
+
+
+## Inverts
+```{r inverts}
+invert_station<-read_excel(path="./inverts/inverts_events.xlsx", sheet = "Station")
+
+invertmap<-ggmap(dmap) + geom_point(data = invert_station, mapping = aes(x = decimalLongitude, y = decimalLatitude), color="orange")
