@@ -60,7 +60,7 @@ class(fish_events$maximumDepthInMeters) #some missing. ask Diane to fill this in
 class(fish_events$minimumDepthInMeters)#some missing. ask Diane to fill this in
 class(fish_events$recordedBy) #some missing. ask Diane to fill this in
 class(fish_events$samplingProtocol) #some missing. ask Diane to fill this in
-class(fish_events$habitat) #needs to be formatted according to schema - Geomorph zone, substrate, biotic
+class(fish_events$habitatGeomorphologicalZone) #needs to be formatted according to schema - Geomorph zone, substrate, biotic
 fish_events$year<-year(fish_events$eventDate)
 fish_events$month<-month(fish_events$eventDate)
 fish_events$day<-day(fish_events$eventDate)
@@ -146,9 +146,9 @@ class(algae_events$maximumDepthInMeters) #some missing. ask Melinda to fill this
 class(algae_events$minimumDepthInMeters)#some missing. ask Melinda to fill this in
 class(algae_events$recordedBy) #some missing. ask Melinda to fill this in
 class(algae_events$samplingProtocol) #some missing. ask Melinda to fill this in
-class(algae_events$`habitat: biotic`)
-class(algae_events$`habitat: geomorphological zone`)
-class(algae_events$`habitat: substrate`)
+class(algae_events$`habitatBiotic`)
+class(algae_events$`habitatGeomorphologicalZone`)
+class(algae_events$`habitatSubstrate`)
 
 
 #Recommended fields
@@ -218,8 +218,117 @@ almap
 ```
 
 
-## Inverts
-```{r inverts}
-invert_station<-read_excel(path="./inverts/inverts_events.xlsx", sheet = "Station")
+# Macroinvertebrates
 
-invertmap<-ggmap(dmap) + geom_point(data = invert_station, mapping = aes(x = decimalLongitude, y = decimalLatitude), color="orange")
+## Import and Format
+
+### Import
+```{r inverts}
+invert_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Inverts/BKANE_063017_FIMS.xlsx", sheet = "Station", skip=2)
+
+invert_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Inverts/BKANE_063017_FIMS.xlsx", sheet = "Specimen",skip=3)
+
+#remove columns that don't appear in MarineGEO schema
+invert_samples<-invert_samples[,-grep(pattern = "^X",x = names(invert_samples),perl=T)]
+invert_events<-invert_events[,-grep(pattern = "^X",x = names(invert_events),perl=T)]
+
+#remove records without occurrenceIDs (temp before final dataset)
+invert_samples<-invert_samples[-which(is.na(invert_samples$scientificName)),]
+
+
+
+```
+
+### Taxonomize
+
+This code will populate `taxonRank` with the lowest known taxonomic category
+
+```{r Taxonomize}
+
+invert_samples$taxonRank[which(!is.na(invert_samples$Phylum))]<-"Phylum"
+invert_samples$taxonRank[which(!is.na(invert_samples$Class))]<-"Class"
+invert_samples$taxonRank[which(!is.na(invert_samples$Subclass))]<-"Subclass"
+invert_samples$taxonRank[which(!is.na(invert_samples$Order))]<-"Order"
+invert_samples$taxonRank[which(!is.na(invert_samples$Suborder))]<-"Suborder"
+invert_samples$taxonRank[which(!is.na(invert_samples$Superfamily))]<-"Superfamily"
+invert_samples$taxonRank[which(!is.na(invert_samples$Family))]<-"Family"
+invert_samples$taxonRank[which(!is.na(invert_samples$Subfamily))]<-"Subfamily"
+invert_samples$taxonRank[which(!is.na(invert_samples$Genus))]<-"Genus"
+invert_samples$taxonRank[which(!is.na(invert_samples$Species))]<-"Species"
+invert_samples$taxonRank[grep("sp\\.",invert_samples$Species)]<-"Genus"
+
+
+```
+
+### Format events to schema
+
+```{r format events}
+#round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
+invert_events$decimalLatitude<-round(as.numeric(invert_events$decimalLatitude),digits = 4)
+invert_events$decimalLongitude<-abs(round(as.numeric(invert_events$decimalLongitude),digits = 4))*-1
+
+invert_events$geoReferenceProtocol<-"GPS"
+invert_events$coordinateUncertaintyInMeters<-50
+class(invert_events$maximumDepthInMeters) #some missing. ask John to fill this in
+class(invert_events$minimumDepthInMeters)#some missing. ask John to fill this in
+class(invert_events$recordedBy) #good
+class(invert_events$samplingProtocol) #some missing. ask John to fill this in
+invert_events$habitatBiotic<-NA
+class(invert_events$habitatGeomorphologicalZone) #some missing. ask John to fill this in
+class(invert_events$habitatSubstrate) # some missing. ask John to fill this in
+
+
+#Recommended fields
+invert_events$eventRemarks<-NA
+class(invert_events$locality)
+invert_events$eventTime<-NA
+class(invert_events$eventRemarks)
+invert_events$verbatimCoordinates<-NA
+invert_events$eventMedia<-NA
+
+```
+### Format samples to schema
+
+```{r format samples}
+
+class(invert_samples$occurrenceID)
+invert_samples$basisOfRecord<-"specimen"
+invert_samples$eventID<-gsub(pattern="(\\w) or \\w",replacement="\\1",x= invert_samples$eventID,perl=T) #  remove the or, pick the first one, still need to fix a few weird ones down the road
+class(invert_samples$scientificName) #eventually parse this into taxon categories?
+class(invert_samples$taxonRank) #using this
+invert_samples$identifiedBy<-"Paulay, Gustav"
+class(invert_samples$individualCount)
+invert_samples$institutionID<-"USNM"
+
+
+
+```
+
+### Join the event data onto the occurrence data
+
+```{r}
+invert<-left_join(invert_samples,invert_events,by="eventID")
+```
+
+## Make A Map
+```{r algae_maps}
+#by individual
+invert2<-invert %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
+
+#by species
+invert3 <- invert %>% group_by(scientificName, decimalLatitude, decimalLongitude) %>% summarize(count=n())
+
+#richness
+invert4<-invert3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richness=n())
+
+invert5<-left_join(invert2,invert4)
+
+
+
+
+invertmap<-ggmap(dmap) + geom_point(data = invert5[-c(61,62),], mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+
+invertmap
+
+#ggsave(almap,filename="invert_map2.pdf")
+```
