@@ -298,7 +298,7 @@ class(invert_samples$scientificName) #eventually parse this into taxon categorie
 class(invert_samples$taxonRank) #using this
 invert_samples$identifiedBy<-"Paulay, Gustav"
 class(invert_samples$individualCount)
-invert_samples$institutionID<-"USNM"
+invert_samples$institutionID<-"FLMNH"
 
 
 
@@ -331,4 +331,98 @@ invertmap<-ggmap(dmap) + geom_point(data = invert5[-c(61,62),], mapping = aes(x 
 invertmap
 
 #ggsave(almap,filename="invert_map2.pdf")
+```
+
+# Meiofauna
+
+## Import and Format
+
+### Import
+```{r import}
+meio_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Meiofauna/Hawaii2017_meiofauna_MarineGEO.xlsx", sheet = "station data", skip=1)
+
+meio_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Meiofauna/Hawaii2017_meiofauna_MarineGEO.xlsx", sheet = "specimen data",skip=2)
+
+#remove columns that don't appear in MarineGEO schema
+meio_samples<-meio_samples[,-grep(pattern = "^X",x = names(meio_samples),perl=T)]
+meio_events<-meio_events[,-grep(pattern = "^X",x = names(meio_events),perl=T)]
+
+#add occurrence IDs to one investigators samples
+meio_samples$occurrenceID[which(is.na(meio_samples$occurrenceID))]<-"UJ" 
+
+#make occurrence IDs unique
+meio_samples$occurrenceID<-make.unique(meio_samples$occurrenceID, sep="_")
+
+
+```
+
+### Format events to schema
+
+```{r format events}
+#round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
+meio_events$decimalLatitude<-round(as.numeric(meio_events$decimalLatitude),digits = 4)
+meio_events$decimalLongitude<-abs(round(as.numeric(meio_events$decimalLongitude),digits = 4))*-1
+
+meio_events$coordinateUncertaintyInMeters<-50
+class(meio_events$maximumDepthInMeters)
+class(meio_events$minimumDepthInMeters)
+class(meio_events$recordedBy) #ask Freya to follow format
+class(meio_events$samplingProtocol) #some missing. ask Freya to fill this in
+class(meio_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
+class(meio_events$habitatSubstrate) # some missing. ask Freya to fill this in
+
+
+#Recommended fields
+meio_events$eventRemarks<-NA
+class(meio_events$locality)
+meio_events$eventDate<-ymd(meio_events$eventDate,tz="HST")
+meio_events$eventTime<-as.character(parse_date_time(meio_events$eventTime, orders="ymdHMS", tz="HST"),format="%H:%M")
+class(meio_events$eventRemarks)
+meio_events$verbatimCoordinates<-NA
+meio_events$eventMedia<-"N"
+
+```
+### Format samples to schema
+
+```{r format samples}
+
+class(meio_samples$occurrenceID)
+class(meio_samples$eventID)
+class(meio_samples$scientificName) #eventually parse this into taxon categories?
+class(meio_samples$taxonRank) #using this
+class(meio_samples$identifiedBy)
+class(meio_samples$individualCount)
+meio_samples$institutionID<-"USNM"
+
+
+
+```
+
+### Join the event data onto the occurrence data
+
+```{r}
+meio<-left_join(meio_samples,meio_events,by="eventID")
+```
+
+## Make A Map
+```{r algae_maps}
+#by individual
+meio2<-meio %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
+
+#by species
+meio3 <- meio %>% group_by(scientificName, decimalLatitude, decimalLongitude) %>% summarize(count=n())
+
+#richness
+meio4<-meio3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richness=n())
+
+meio5<-left_join(meio2,meio4)
+
+
+
+
+meiomap<-ggmap(dmap) + geom_point(data = meio5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+
+meiomap
+
+#ggsave(almap,filename="meio_map2.pdf")
 ```
