@@ -45,7 +45,7 @@ fish_samples$eventID<-gsub("LRP 17-","KANF0",fish_samples$eventID)
 fish_samples<-ddply(fish_samples, "occurrenceID", transform, materialSampleID = paste(materialSampleID, collapse = "|"))
 
 #keep only the first instance of each occurrenceID
-fish_samples<-fish_samples1[!duplicated(fish_samples1$occurrenceID),]
+fish_samples<-fish_samples[!duplicated(fish_samples$occurrenceID),]
 ```
 
 ### Format events to schema
@@ -94,7 +94,7 @@ fish_samples$organismScope<-"organism"
 ### Join the event data onto the occurrence data
 
 ```{r}
-fish<-left_join(fish_samples1,fish_events,by="eventID")
+fish<-left_join(fish_samples,fish_events,by="eventID")
 ```
 
 ## Make a Map
@@ -311,7 +311,7 @@ invert<-left_join(invert_samples,invert_events,by="eventID")
 ```
 
 ## Make A Map
-```{r algae_maps}
+```{r invert_maps}
 #by individual
 invert2<-invert %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
 
@@ -330,7 +330,7 @@ invertmap<-ggmap(dmap) + geom_point(data = invert5[-c(61,62),], mapping = aes(x 
 
 invertmap
 
-#ggsave(almap,filename="invert_map2.pdf")
+#ggsave(invert,filename="invert_map2.pdf")
 ```
 
 # Meiofauna
@@ -405,7 +405,7 @@ meio<-left_join(meio_samples,meio_events,by="eventID")
 ```
 
 ## Make A Map
-```{r algae_maps}
+```{r meio_maps}
 #by individual
 meio2<-meio %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
 
@@ -424,5 +424,88 @@ meiomap<-ggmap(dmap) + geom_point(data = meio5, mapping = aes(x = decimalLongitu
 
 meiomap
 
-#ggsave(almap,filename="meio_map2.pdf")
+#ggsave(meiomap,filename="meio_map2.pdf")
 ```
+
+# ARMS
+
+## Import and Format
+
+### Import
+```{r import}
+arms_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/ARMS/MarineGEOHI_bioassessment_master-ARMS.xlsx", sheet = "Station")
+
+arms_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/ARMS/MarineGEOHI_bioassessment_master-ARMS.xlsx", sheet = "Sample")
+
+```
+
+### Format events to schema
+
+```{r format events}
+#round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
+arms_events$decimalLatitude<-round(as.numeric(arms_events$decimalLatitude),digits = 4)
+arms_events$decimalLongitude<-abs(round(as.numeric(arms_events$decimalLongitude),digits = 4))*-1
+
+class(arms_events$eventID)
+arms_events$coordinateUncertaintyInMeters<-50
+class(arms_events$maximumDepthInMeters)
+class(arms_events$minimumDepthInMeters)
+class(arms_events$recordedBy) #ask Laetitia to follow format
+class(arms_events$samplingProtocol) #some missing. ask Freya to fill this in
+class(arms_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
+class(arms_events$habitatSubstrate) # some missing. ask Freya to fill this in
+class(arms_events$habitatBiotic)
+
+#Recommended fields
+arms_events$eventRemarks<-NA
+class(arms_events$locality)
+class(arms_events$year)
+class(arms_events$month)
+class(arms_events$day)
+arms_events$verbatimCoordinates<-NA
+arms_events$eventMedia<-"Y"
+
+```
+### Format samples to schema
+
+```{r format samples}
+
+class(arms_samples$occurrenceID)
+class(arms_samples$eventID)
+class(arms_samples$scientificName) #eventually parse this into taxon categories?
+class(arms_samples$taxonRank) #using this
+class(arms_samples$identifiedBy)
+class(arms_samples$individualCount)
+arms_samples$institutionID<-"USNM"
+
+
+
+```
+
+### Join the event data onto the occurrence data
+
+```{r}
+arms<-left_join(arms_samples,arms_events,by="eventID")
+```
+
+## Make A Map
+```{r algae_maps}
+#by individual
+arms2<-arms %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
+
+#by species
+arms3 <- arms %>% group_by(scientificName, decimalLatitude, decimalLongitude) %>% summarize(count=n())
+
+#richness
+arms4<-arms3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richness=n())
+
+arms5<-left_join(arms2,arms4)
+
+
+
+
+armsmap<-ggmap(dmap) + geom_point(data = arms5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+
+armsmap
+
+#ggsave(almap,filename="arms_map2.pdf")
