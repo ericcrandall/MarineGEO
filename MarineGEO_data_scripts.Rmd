@@ -1,8 +1,10 @@
 ---
-title: "MarineGEO Data Formatting"
+title: "MarineGEO Data Formatting and Summarizing"
 author: "Eric D. Crandall"
 date: "5/29/2017"
-output: html_document
+output: 
+  html_document:
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -17,6 +19,12 @@ filedir<-"~/google_drive/MarineGEO"
 bbox<-c(left=-157.85,bottom= 21.38,right=-157.75, top=21.55)
 dmap <- get_map(location = bbox, maptype = "satellite", source = "google")
 
+# to do:
+# split date fields into year, month, day
+# reformat name fields
+# split scientific name into genus and species where appropriate
+# sp. changes lowest known to genus
+# organismScope = bulk lot if individualCount > 1
 ```
 
 # Fish
@@ -79,7 +87,10 @@ class(fish_events$eventMedia)
 ```{r format samples}
 
 class(fish_samples$occurrenceID)
-class(fish_samples$basisOfRecord)
+class(fish_samples$basisofRecord)
+class(fish_samples$catalogNumber)
+class(fish_samples$otherCatalogNumbers)
+class(fish_samples$organismScope)
 class(fish_samples$eventID)
 class(fish_samples$scientificName) #eventually parse this into taxon categories?
 class(fish_samples$taxonRank) #using this
@@ -165,7 +176,11 @@ class(algae_events$eventMedia)
 ```{r format samples}
 
 class(algae_samples$occurrenceID)
-algae_samples$basisOfRecord<-"specimen"
+algae_samples$basisofRecord<-"specimen"
+class(algae_samples$catalogNumber)
+class(algae_samples$otherCatalogNumbers)
+class(algae_samples$organismScope)
+
 class(algae_samples$eventID)
 class(algae_samples$scientificName) #eventually parse this into taxon categories?
 class(algae_samples$taxonRank) #using this
@@ -182,8 +197,10 @@ algae_samples$institutionID<-"USNM"
 
 ### join the event data onto the occurrence data
 
-```{ join}
+```{r join}
+
 algae<-left_join(algae_samples,algae_events,by="eventID")
+
 ```
 
 ## Make A Map
@@ -292,7 +309,11 @@ invert_events$eventMedia<-NA
 ```{r format samples}
 
 class(invert_samples$occurrenceID)
-invert_samples$basisOfRecord<-"specimen"
+class(invert_samples$basisofRecord)
+class(invert_samples$catalogNumber)
+class(invert_samples$otherCatalogNumbers)
+class(invert_samples$organismScope)
+invert_samples$basisofRecord<-"specimen"
 invert_samples$eventID<-gsub(pattern="(\\w) or \\w",replacement="\\1",x= invert_samples$eventID,perl=T) #  remove the or, pick the first one, still need to fix a few weird ones down the road
 class(invert_samples$scientificName) #eventually parse this into taxon categories?
 class(invert_samples$taxonRank) #using this
@@ -387,6 +408,10 @@ meio_events$eventMedia<-"N"
 ```{r format samples}
 
 class(meio_samples$occurrenceID)
+class(meio_samples$basisofRecord)
+class(meio_samples$catalogNumber)
+class(meio_samples$otherCatalogNumbers)
+class(meio_samples$organismScope)
 class(meio_samples$eventID)
 class(meio_samples$scientificName) #eventually parse this into taxon categories?
 class(meio_samples$taxonRank) #using this
@@ -471,6 +496,10 @@ arms_events$eventMedia<-"Y"
 ```{r format samples}
 
 class(arms_samples$occurrenceID)
+class(arms_samples$basisofRecord)
+class(arms_samples$catalogNumber)
+class(arms_samples$otherCatalogNumbers)
+class(arms_samples$organismScope)
 class(arms_samples$eventID)
 class(arms_samples$scientificName) #eventually parse this into taxon categories?
 class(arms_samples$taxonRank) #using this
@@ -509,3 +538,125 @@ armsmap<-ggmap(dmap) + geom_point(data = arms5, mapping = aes(x = decimalLongitu
 armsmap
 
 #ggsave(almap,filename="arms_map2.pdf")
+```
+
+
+# Visual Transects
+
+## Import and Format
+
+### Import
+```{r import}
+trans_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Transects/bioassessment_KANV.xlsx", sheet = "Station")
+
+trans_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Transects/bioassessment_KANV.xlsx", sheet = "Sample")
+
+trans_event_photos<-read_excel(path="/Users/eric/google_drive/MarineGEO/Transects/KANV_benthic-photos_filenames_20170711.xlsx", sheet = "Sheet1")
+
+trans_organism_photos<-read_excel(path="/Users/eric/google_drive/MarineGEO/Transects/KANV_photo-vouchers_20170712.xlsx", sheet = "Sheet1")
+```
+
+### Format, collapse and merge the media fields
+
+```{r photo fields}
+
+# event photos
+#pop off the eventID into its own field
+trans_event_photos$eventID<-sub(pattern="(KANV\\d\\d\\d)_.+",replacement = "\\1", trans_event_photos$eventMedia, perl=T)
+
+#use ddply to lump all eventMedia into a single field, separated by a |
+trans_eventMedia<-ddply(trans_event_photos, "eventID", transform, eventMedia = paste(eventMedia, collapse = "|"))
+
+#keep only the first instance of each occurrenceID
+trans_eventMedia<-trans_eventMedia[!duplicated(trans_eventMedia$eventID),]
+
+trans_events<-left_join(trans_events, trans_eventMedia, by="eventID")
+
+
+# organism photos
+
+#pop off the eventID again into its own field
+trans_organism_photos$eventID<-sub(pattern="(KANV\\d\\d\\d)_.+",replacement = "\\1", trans_organism_photos$associatedMedia, perl=T)
+
+#pop off the species name into its own field
+species<-sub(pattern=".+_(\\d{8})_(\\w+-[a-z]+)_.+", replacement = "\\2", trans_organism_photos$associatedMedia,perl=T)
+
+```
+
+### Format events to schema
+
+```{r format events}
+#round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
+trans_events$decimalLatitude<-round(as.numeric(trans_events$decimalLatitude),digits = 4)
+trans_events$decimalLongitude<-abs(round(as.numeric(trans_events$decimalLongitude),digits = 4))*-1
+
+class(trans_events$eventID)
+class(trans_events$coordinateUncertaintyInMeters)
+class(trans_events$maximumDepthInMeters)
+class(trans_events$minimumDepthInMeters)
+class(trans_events$recordedBy) 
+class(trans_events$samplingProtocol) #some missing. ask Freya to fill this in
+class(trans_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
+class(trans_events$habitatSubstrate) # some missing. ask Freya to fill this in
+class(trans_events$habitatBiotic)
+
+#Recommended fields
+trans_events$eventRemarks<-NA
+class(trans_events$locality)
+class(trans_events$year)
+class(trans_events$month)
+class(trans_events$day)
+trans_events$verbatimCoordinates<-NA
+trans_events$eventMedia<-"Y"
+
+```
+### Format samples to schema
+
+```{r format samples}
+
+class(trans_samples$occurrenceID)
+class(trans_samples$basisofRecord)
+class(trans_samples$catalogNumber)
+class(trans_samples$otherCatalogNumbers)
+class(trans_samples$organismScope)
+class(trans_samples$eventID)
+class(trans_samples$scientificName) #eventually parse this into taxon categories?
+class(trans_samples$taxonRank) #using this
+class(trans_samples$identifiedBy)
+class(trans_samples$individualCount)
+trans_samples$institutionID<-"USNM"
+
+
+
+
+```
+
+### Join the event data onto the occurrence data
+
+```{r}
+trans<-left_join(trans_samples,trans_events,by="eventID")
+```
+
+## Make A Map
+```{r algae_maps}
+#by individual
+trans2<-trans %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
+
+#by species
+trans3 <- trans %>% group_by(scientificName, decimalLatitude, decimalLongitude) %>% summarize(count=n(), individualCount=sum(individualCount,na.rm=T))
+
+#richness
+trans4<-trans3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richness=n())
+
+trans5<-left_join(trans2,trans4)
+
+
+
+
+transmap<-ggmap(dmap) + geom_point(data = trans5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+
+transmap
+
+#ggsave(almap,filename="trans_map2.pdf")
+```
+
