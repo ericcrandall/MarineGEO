@@ -8,12 +8,17 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
 library(plyr)
 library(dplyr)
 library(ggmap)
 library(readxl)
 library(lubridate)
+library(stringr)
 filedir<-"~/google_drive/MarineGEO"
 
 bbox<-c(left=-157.85,bottom= 21.38,right=-157.75, top=21.55)
@@ -33,45 +38,53 @@ dmap <- get_map(location = bbox, maptype = "satellite", source = "google")
 
 ### Import
 ```{r Fish_import}
-# First go through and make sure all stations have Lat/Longs, or as many as possible
+# First go through and make sure all stations have Lat/Longs, or as many as possible. Delete secondary lat/longs
 #read in the sample data, skipping first 3 lines of other headers. Format all times as hh:mm in Excel, paste into textwrangler if they need homogenization (i.e. multiple formats of times)
 
-fish_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Fish/KANEOHOE_SI_FIMS_20170714.xlsx",sheet="Specimen information",skip=3)
+fish_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Fish/FISH_DATA_21Jul2017.xlsx",sheet="Samples")
 
-fish_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Fish/KANEOHOE_SI_FIMS_20170714.xlsx",sheet="Locality information",skip=3)
+fish_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Fish/FISH_DATA_21Jul2017.xlsx",sheet="Events")
 
+fish_genetic<-read_excel(path="/Users/eric/google_drive/MarineGEO/Fish/FISH_DATA_21Jul2017.xlsx",sheet="Genetic samples")
+#these commands apply to the original fish-group template
 #remove columns without mapped DwC terms mapped
-fish_samples<-fish_samples[,-grep(pattern = "^X",x = names(fish_samples),perl=T)]
-fish_events<-fish_events[,-grep(pattern = "^X",x = names(fish_events),perl=T)]
+#fish_samples<-fish_samples[,-grep(pattern = "^X",x = names(fish_samples),perl=T)]
+#fish_events<-fish_events[,-grep(pattern = "^X",x = names(fish_events),perl=T)]
 
 #remove records without occurrenceIDs (temp before final dataset)
-fish_samples<-fish_samples[-which(is.na(fish_samples$occurrenceID)),]
+#fish_samples<-fish_samples[-which(is.na(fish_samples$occurrenceID)),]
 #translate fieldIDs to eventIDs
-fish_samples$eventID<-gsub("LRP 17-","KANF0",fish_samples$eventID)
-
+#fish_samples$eventID<-gsub("LRP 17-","KANF0",fish_samples$eventID)
 #use ddply to lump all materialSampleIDs into a single field, separated by a |
-fish_samples<-ddply(fish_samples, "occurrenceID", transform, materialSampleID = paste(materialSampleID, collapse = "|"))
-
+#fish_samples<-ddply(fish_samples, "occurrenceID", transform, materialSampleID = #paste(materialSampleID, collapse = "|"))
 #keep only the first instance of each occurrenceID
-fish_samples<-fish_samples[!duplicated(fish_samples$occurrenceID),]
+#fish_samples<-fish_samples[!duplicated(fish_samples$occurrenceID),]
 ```
 
 ### Format events to schema
 
 ```{r format events}
+#change eventID to just the KANF value
+fish_events$eventID<-str_extract(fish_events$eventID,"KANF\\d\\d\\d")
+fish_samples$eventID<-str_extract(fish_samples$eventID,"KANF\\d\\d\\d")
+
+#round the 
 fish_events$decimalLatitude<-round(as.numeric(fish_events$decimalLatitude),digits = 4)
 fish_events$decimalLongitude<-round(as.numeric(fish_events$decimalLongitude),digits = 4)
-fish_events$georeferenceProtocol[which(fish_events$georeferenceProtocol=="GoogleEarth")]<-"Google Earth" ##Ask Diane to fill this in.
-class(fish_events$coordinateUncertaintyInMeters) # ask Diane to fill this in.
-fish_events$eventDate<-dmy(fish_events$eventDate) # make sure this imports correctly
-class(fish_events$maximumDepthInMeters) #some missing. ask Diane to fill this in
-class(fish_events$minimumDepthInMeters)#some missing. ask Diane to fill this in
-class(fish_events$recordedBy) #some missing. ask Diane to fill this in
+class(fish_events$geoReferenceProtocol)
+fish_events$coordinateUncertaintyInMeters<-as.numeric(fish_events$coordinateUncertaintyInMeters) 
+
+class(fish_events$maximumDepthInMeters)
+class(fish_events$minimumDepthInMeters)
+class(fish_events$recordedBy) 
 class(fish_events$samplingProtocol) #some missing. ask Diane to fill this in
-class(fish_events$habitatGeomorphologicalZone) #needs to be formatted according to schema - Geomorph zone, substrate, biotic
-fish_events$year<-year(fish_events$eventDate)
-fish_events$month<-month(fish_events$eventDate)
-fish_events$day<-day(fish_events$eventDate)
+#remove carriage returns from Geomorphological Zone
+fish_events$habitatGeomorphologicalZone<-str_replace_all(fish_events$habitatGeomorphologicalZone,pattern="\r\n",replacement = "")
+fish_events$habitatSubstrate<-str_replace_all(fish_events$habitatSubstrate,pattern="\r\n",replacement = "")
+class(fish_events$habitatBiotic)
+fish_events$year<-as.numeric(fish_events$year)
+fish_events$month<-match(fish_events$month,month.abb)
+fish_events$day<-as.numeric(fish_events$day)
 
 #Recommended fields
 class(fish_events$eventRemarks)
@@ -89,23 +102,40 @@ class(fish_events$eventMedia)
 class(fish_samples$occurrenceID)
 class(fish_samples$basisofRecord)
 class(fish_samples$catalogNumber)
-class(fish_samples$otherCatalogNumbers)
+fish_samples$otherCatalogNumbers<-NULL # drop this for now - it will be replaced by fish_biorep below
 class(fish_samples$organismScope)
 class(fish_samples$eventID)
 class(fish_samples$scientificName) #eventually parse this into taxon categories?
 class(fish_samples$taxonRank) #using this
-class(fish_samples$identifiedBy)
+fish_samples$identifiedBy<-str_replace(fish_samples$identifiedBy, pattern="(\\w+), (.+)", replacement="\\2 \\1")
 class(fish_samples$individualCount)
 class(fish_samples$institutionID)
-fish_samples$organismScope<-"organism"
 
 
+```
+
+### Format the biorepository info
+```{r}
+colnames(fish_genetic)[5]<-"BiorepositoryID"
+colnames(fish_genetic)[6]<-"tissueNotes"
+colnames(fish_genetic)[2]<-"occurrenceID"
+#use ddply to lump all materialSampleIDs into a single field, separated by a |
+fish_biorep<-ddply(fish_genetic, "occurrenceID", transform, otherCatalogNumbers = paste(BiorepositoryID, collapse = "|"), tissueNotes = paste(tissueNotes, collapse="|"))
+#keep only the first instance of each occurrenceID
+fish_biorep<-fish_biorep[!duplicated(fish_biorep$otherCatalogNumbers),]
+fish_biorep$otherCatalogNumbers<-as.character(fish_biorep$otherCatalogNumbers)
 ```
 
 ### Join the event data onto the occurrence data
 
 ```{r}
+
+#first join the biorep numbers to this data
+fish_samples<-left_join(fish_samples,fish_biorep[,c(2,6,7)],by="occurrenceID")
+#now join samples and events
 fish<-left_join(fish_samples,fish_events,by="eventID")
+
+
 ```
 
 ## Make a Map
@@ -125,8 +155,9 @@ fish4<-fish3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richne
 fish6<-left_join(fish2,fish4)
 
 
-ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank())
+fishmap<-ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank())
 
+fishmap
 
 
 
@@ -148,6 +179,7 @@ algae_events<-read_excel("/Users/eric/google_drive/MarineGEO/algae/MarineGEOHI_b
 
 ```{r Format events}
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
+class(algae_events$eventID)
 algae_events$decimalLatitude<-round(as.numeric(algae_events$decimalLatitude),digits = 4)
 algae_events$decimalLongitude<-abs(round(as.numeric(algae_events$decimalLongitude),digits = 4))*-1
 
@@ -165,7 +197,10 @@ class(algae_events$`habitatSubstrate`)
 #Recommended fields
 class(algae_events$eventRemarks)
 class(algae_events$locality)
-class(algae_events$eventTime)
+
+#format time correctly
+algae_events$eventTime<-as.character(parse_date_time(algae_events$eventTime, orders="ymdHMS", tz="HST"),format="%H:%M")
+
 class(algae_events$eventRemarks)
 class(algae_events$verbatimCoordinates)
 class(algae_events$eventMedia)
@@ -183,7 +218,7 @@ class(algae_samples$organismScope)
 
 class(algae_samples$eventID)
 class(algae_samples$scientificName) #eventually parse this into taxon categories?
-class(algae_samples$taxonRank) #using this
+class(algae_samples$taxonRank) # Melinda needs to fix this...
 class(algae_samples$identifiedBy)
 class(algae_samples$individualCount)
 algae_samples$institutionID<-"USNM"
@@ -218,7 +253,7 @@ algae4<-algae3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(rich
 
 algae5<-left_join(algae2,algae4)
 
-algae5<-algae5[-which(is.na(algae5$decimalLatitude)),]
+algae5<-algae5[which(is.na(algae5$decimalLatitude)),]
 #algae5<-algae5[-which(algae5$scientificName=="?"),]
 
 algae5[4,4]<-1
@@ -280,19 +315,28 @@ invert_samples$taxonRank[grep("sp\\.",invert_samples$Species)]<-"Genus"
 ### Format events to schema
 
 ```{r format events}
+# Note: invert data need a lot of cleaning, including importing stations from the algae and meiofauna team, and making new stations with "A" or "B" appended. Currently 839 samples do not have station information because of this.
+
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 invert_events$decimalLatitude<-round(as.numeric(invert_events$decimalLatitude),digits = 4)
 invert_events$decimalLongitude<-abs(round(as.numeric(invert_events$decimalLongitude),digits = 4))*-1
 
 invert_events$geoReferenceProtocol<-"GPS"
-invert_events$coordinateUncertaintyInMeters<-50
+invert_events$coordinateUncertaintyInMeters<-100
 class(invert_events$maximumDepthInMeters) #some missing. ask John to fill this in
 class(invert_events$minimumDepthInMeters)#some missing. ask John to fill this in
+
+#Format the date properly, get rid of the "raw" field
+invert_events$day<-day(invert_events$eventDate)
+invert_events$month<-month(invert_events$eventDate)
+invert_events$year<-year(invert_events$eventDate)
+invert_events$eventDate<-NULL
+
 class(invert_events$recordedBy) #good
 class(invert_events$samplingProtocol) #some missing. ask John to fill this in
-invert_events$habitatBiotic<-NA
-class(invert_events$habitatGeomorphologicalZone) #some missing. ask John to fill this in
-class(invert_events$habitatSubstrate) # some missing. ask John to fill this in
+invert_events$habitatBiotic<-NA #this needs to be aligned with the schema
+class(invert_events$habitatGeomorphologicalZone) #some missing. ask John to fill this in. #this needs to be aligned with the schema
+class(invert_events$habitatSubstrate) # some missing. ask John to fill this in. #this needs to be aligned with the schema
 
 
 #Recommended fields
@@ -309,16 +353,17 @@ invert_events$eventMedia<-NA
 ```{r format samples}
 
 class(invert_samples$occurrenceID)
-class(invert_samples$basisofRecord)
-class(invert_samples$catalogNumber)
-class(invert_samples$otherCatalogNumbers)
-class(invert_samples$organismScope)
-invert_samples$basisofRecord<-"specimen"
-invert_samples$eventID<-gsub(pattern="(\\w) or \\w",replacement="\\1",x= invert_samples$eventID,perl=T) #  remove the or, pick the first one, still need to fix a few weird ones down the road
+invert_samples$basisOfRecord<-"specimen"
+invert_samples$catalogNumber<-NA
+invert_samples$otherCatalogNumbers<-NA
+invert_samples$organismScope<-"organism"
+#remove eventIDs that have two possibilities, assume it is the first one for now
+invert_samples$eventID<-gsub(pattern="(\\w) or \\w",replacement="\\1",x= invert_samples$eventID,perl=T)
 class(invert_samples$scientificName) #eventually parse this into taxon categories?
 class(invert_samples$taxonRank) #using this
-invert_samples$identifiedBy<-"Paulay, Gustav"
-class(invert_samples$individualCount)
+invert_samples$identifiedBy<-"Paulay, Gustav" # for now. don't know if they kept this info
+#assume that blank counts had 1 individual for now
+invert_samples$individualCount[is.na(invert_samples$individualCount)]<-1
 invert_samples$institutionID<-"FLMNH"
 
 
@@ -360,6 +405,8 @@ invertmap
 
 ### Import
 ```{r import}
+#note meio data still need some cleaning, including importing some stations from inverts and fish, and fixing up eventIDs to have 3 digits instead of 2. There are 27 specimens that do not have station information because of this.
+
 meio_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Meiofauna/Hawaii2017_meiofauna_MarineGEO.xlsx", sheet = "station data", skip=1)
 
 meio_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Meiofauna/Hawaii2017_meiofauna_MarineGEO.xlsx", sheet = "specimen data",skip=2)
@@ -384,19 +431,23 @@ meio_samples$occurrenceID<-make.unique(meio_samples$occurrenceID, sep="_")
 meio_events$decimalLatitude<-round(as.numeric(meio_events$decimalLatitude),digits = 4)
 meio_events$decimalLongitude<-abs(round(as.numeric(meio_events$decimalLongitude),digits = 4))*-1
 
-meio_events$coordinateUncertaintyInMeters<-50
+meio_events$coordinateUncertaintyInMeters<-100
 class(meio_events$maximumDepthInMeters)
 class(meio_events$minimumDepthInMeters)
-class(meio_events$recordedBy) #ask Freya to follow format
+class(meio_events$recordedBy) #ask Freya to follow format - add last names, and pipes between names
 class(meio_events$samplingProtocol) #some missing. ask Freya to fill this in
 class(meio_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
 class(meio_events$habitatSubstrate) # some missing. ask Freya to fill this in
-
+class(meio_events$habitatBiotic)
 
 #Recommended fields
 meio_events$eventRemarks<-NA
 class(meio_events$locality)
-meio_events$eventDate<-ymd(meio_events$eventDate,tz="HST")
+meio_events$day<-day(meio_events$eventDate)
+meio_events$month<-month(meio_events$eventDate)
+meio_events$year<-year(meio_events$eventDate)
+meio_events$eventDate<-NULL
+
 meio_events$eventTime<-as.character(parse_date_time(meio_events$eventTime, orders="ymdHMS", tz="HST"),format="%H:%M")
 class(meio_events$eventRemarks)
 meio_events$verbatimCoordinates<-NA
@@ -408,7 +459,7 @@ meio_events$eventMedia<-"N"
 ```{r format samples}
 
 class(meio_samples$occurrenceID)
-class(meio_samples$basisofRecord)
+meio_samples$basisofRecord<-"specimen" #check with Frey that this is correct
 class(meio_samples$catalogNumber)
 class(meio_samples$otherCatalogNumbers)
 class(meio_samples$organismScope)
@@ -470,9 +521,9 @@ arms_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/ARMS/MarineGEO
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 arms_events$decimalLatitude<-round(as.numeric(arms_events$decimalLatitude),digits = 4)
 arms_events$decimalLongitude<-abs(round(as.numeric(arms_events$decimalLongitude),digits = 4))*-1
-
+class(arms_events$geoReferenceProtocol)
 class(arms_events$eventID)
-arms_events$coordinateUncertaintyInMeters<-50
+arms_events$coordinateUncertaintyInMeters<-10
 class(arms_events$maximumDepthInMeters)
 class(arms_events$minimumDepthInMeters)
 class(arms_events$recordedBy) #ask Laetitia to follow format
@@ -488,7 +539,7 @@ class(arms_events$year)
 class(arms_events$month)
 class(arms_events$day)
 arms_events$verbatimCoordinates<-NA
-arms_events$eventMedia<-"Y"
+arms_events$eventMedia<-"Y" #still need to get these from Laetitia
 
 ```
 ### Format samples to schema
@@ -499,15 +550,15 @@ class(arms_samples$occurrenceID)
 class(arms_samples$basisofRecord)
 class(arms_samples$catalogNumber)
 class(arms_samples$otherCatalogNumbers)
-class(arms_samples$organismScope)
+class(arms_samples$organismScope) #were there some slurries too?
 class(arms_samples$eventID)
 class(arms_samples$scientificName) #eventually parse this into taxon categories?
 class(arms_samples$taxonRank) #using this
 class(arms_samples$identifiedBy)
 class(arms_samples$individualCount)
+# change NAs for individualCount to 1 for now
+arms_samples$individualCount[which(is.na(arms_samples$individualCount))]<-1
 arms_samples$institutionID<-"USNM"
-
-
 
 ```
 
