@@ -744,7 +744,14 @@ a<-full_join(fish,algae)
 b<-full_join(a,invert)
 c<-full_join(b,meio)
 d<-full_join(c,arms)
-e<-full_join(d,trans)
+MarineGEOHI<-full_join(d,trans)
 
+#read in the flat schema
+flat_schema<-as.vector(read.csv("flat_schema.csv", header=F, stringsAsFactors = F))
+
+#reduce the joined database to just the columns in the schema, and sort on column order
+MarineGEOHI2<-MarineGEOHI[,match(flat_schema, names(MarineGEOHI))]
+
+write.csv(MarineGEOHI2,"MarineGEOHI_data_1.0.csv")
 
 ```
