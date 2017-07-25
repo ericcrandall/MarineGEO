@@ -1,5 +1,5 @@
 ---
-title: "MarineGEO Data Formatting and Summarizing"
+title: "MarineGEO Data Formatting, Summarizing and joining"
 author: "Eric D. Crandall"
 date: "5/29/2017"
 output: 
@@ -64,6 +64,9 @@ fish_genetic<-read_excel(path="/Users/eric/google_drive/MarineGEO/Fish/FISH_DATA
 ### Format events to schema
 
 ```{r format events}
+#change all empty columns from logical to character class
+class(fish_events[,which(sapply(fish_events, is.logical))])<-"character"
+
 #change eventID to just the KANF value
 fish_events$eventID<-str_extract(fish_events$eventID,"KANF\\d\\d\\d")
 fish_samples$eventID<-str_extract(fish_samples$eventID,"KANF\\d\\d\\d")
@@ -91,17 +94,18 @@ class(fish_events$eventRemarks)
 class(fish_events$locality)
 class(fish_events$eventTime)
 class(fish_events$eventRemarks)
-class(fish_events$eventRemarks)
 class(fish_events$verbatimCoordinates)
 class(fish_events$eventMedia)
 ```
 ### Format samples to schema
 
 ```{r format samples}
+#change all empty columns from logical to character class
+class(fish_samples[,which(sapply(fish_samples, is.logical))])<-"character"
 
 class(fish_samples$occurrenceID)
 class(fish_samples$basisofRecord)
-class(fish_samples$catalogNumber)
+class(fish_samples$catalogNumber)<-"character"
 fish_samples$otherCatalogNumbers<-NULL # drop this for now - it will be replaced by fish_biorep below
 class(fish_samples$organismScope)
 class(fish_samples$eventID)
@@ -110,6 +114,8 @@ class(fish_samples$taxonRank) #using this
 fish_samples$identifiedBy<-str_replace(fish_samples$identifiedBy, pattern="(\\w+), (.+)", replacement="\\2 \\1")
 class(fish_samples$individualCount)
 class(fish_samples$institutionID)
+
+
 
 
 ```
@@ -179,6 +185,10 @@ algae_events<-read_excel("/Users/eric/google_drive/MarineGEO/algae/MarineGEOHI_b
 ### Format events to schema
 
 ```{r Format events}
+#change all empty columns from logical to character class
+class(algae_events[,which(sapply(algae_events, is.logical))])<-"character"
+
+
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 class(algae_events$eventID)
 algae_events$decimalLatitude<-round(as.numeric(algae_events$decimalLatitude),digits = 4)
@@ -210,6 +220,8 @@ class(algae_events$eventMedia)
 ### Format samples to schema
 
 ```{r format samples}
+#change all empty columns from logical to character class
+class(algae_samples[,which(sapply(algae_samples, is.logical))])<-"character"
 
 class(algae_samples$occurrenceID)
 algae_samples$basisofRecord<-"specimen"
@@ -219,7 +231,7 @@ class(algae_samples$organismScope)
 
 class(algae_samples$eventID)
 class(algae_samples$scientificName) #eventually parse this into taxon categories?
-class(algae_samples$taxonRank) # Melinda needs to fix this...
+algae_samples$taxonRank<-as.character(algae_samples$taxonRank) # Melinda needs to fix this...
 class(algae_samples$identifiedBy)
 class(algae_samples$individualCount)
 algae_samples$institutionID<-"USNM"
@@ -319,6 +331,9 @@ invert_samples$taxonRank[grep("sp\\.",invert_samples$Species)]<-"Genus"
 ```{r format events}
 # Note: invert data need a lot of cleaning, including importing stations from the algae and meiofauna team, and making new stations with "A" or "B" appended. Currently 839 samples do not have station information because of this.
 
+#change all empty columns from logical to character class
+class(invert_events[,which(sapply(invert_events, is.logical))])<-"character"
+
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 invert_events$decimalLatitude<-round(as.numeric(invert_events$decimalLatitude),digits = 4)
 invert_events$decimalLongitude<-abs(round(as.numeric(invert_events$decimalLongitude),digits = 4))*-1
@@ -342,17 +357,15 @@ class(invert_events$habitatSubstrate) # some missing. ask John to fill this in. 
 
 
 #Recommended fields
-invert_events$eventRemarks<-NA
 class(invert_events$locality)
-invert_events$eventTime<-NA
 class(invert_events$eventRemarks)
-invert_events$verbatimCoordinates<-NA
-invert_events$eventMedia<-NA
 
 ```
 ### Format samples to schema
 
 ```{r format samples}
+#change all empty columns from logical to character class
+class(invert_samples[,which(sapply(invert_samples, is.logical))])<-"character"
 
 class(invert_samples$occurrenceID)
 invert_samples$basisOfRecord<-"specimen"
@@ -429,6 +442,10 @@ meio_samples$occurrenceID<-make.unique(meio_samples$occurrenceID, sep="_")
 ### Format events to schema
 
 ```{r format events}
+
+#change all empty columns from logical to character class
+class(meio_events[,which(sapply(meio_events, is.logical))])<-"character"
+
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 meio_events$decimalLatitude<-round(as.numeric(meio_events$decimalLatitude),digits = 4)
 meio_events$decimalLongitude<-abs(round(as.numeric(meio_events$decimalLongitude),digits = 4))*-1
@@ -443,7 +460,6 @@ class(meio_events$habitatSubstrate) # some missing. ask Freya to fill this in
 class(meio_events$habitatBiotic)
 
 #Recommended fields
-meio_events$eventRemarks<-NA
 class(meio_events$locality)
 meio_events$day<-day(meio_events$eventDate)
 meio_events$month<-month(meio_events$eventDate)
@@ -452,13 +468,14 @@ meio_events$eventDate<-NULL
 
 meio_events$eventTime<-as.character(parse_date_time(meio_events$eventTime, orders="ymdHMS", tz="HST"),format="%H:%M")
 class(meio_events$eventRemarks)
-meio_events$verbatimCoordinates<-NA
 meio_events$eventMedia<-"N"
 
 ```
 ### Format samples to schema
 
 ```{r format samples}
+#change all empty columns from logical to character class
+class(meio_samples[,which(sapply(meio_samples, is.logical))])<-"character"
 
 class(meio_samples$occurrenceID)
 meio_samples$basisofRecord<-"specimen" #check with Frey that this is correct
@@ -471,8 +488,6 @@ class(meio_samples$taxonRank) #using this
 class(meio_samples$identifiedBy)
 class(meio_samples$individualCount)
 meio_samples$institutionID<-"USNM"
-
-
 
 ```
 
@@ -520,6 +535,9 @@ arms_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/ARMS/MarineGEO
 ### Format events to schema
 
 ```{r format events}
+#change all empty columns from logical to character class
+class(arms_events[,which(sapply(arms_events, is.logical))])<-"character"
+
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 arms_events$decimalLatitude<-round(as.numeric(arms_events$decimalLatitude),digits = 4)
 arms_events$decimalLongitude<-abs(round(as.numeric(arms_events$decimalLongitude),digits = 4))*-1
@@ -527,7 +545,7 @@ class(arms_events$geoReferenceProtocol)
 class(arms_events$eventID)
 arms_events$coordinateUncertaintyInMeters<-10
 class(arms_events$maximumDepthInMeters)
-class(arms_events$minimumDepthInMeters)
+class(arms_events$minimumDepthInMeters)<-"numeric"
 class(arms_events$recordedBy) #ask Laetitia to follow format
 class(arms_events$samplingProtocol) #some missing. ask Freya to fill this in
 class(arms_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
@@ -535,18 +553,18 @@ class(arms_events$habitatSubstrate) # some missing. ask Freya to fill this in
 class(arms_events$habitatBiotic)
 
 #Recommended fields
-arms_events$eventRemarks<-NA
 class(arms_events$locality)
 class(arms_events$year)
 class(arms_events$month)
 class(arms_events$day)
-arms_events$verbatimCoordinates<-NA
 arms_events$eventMedia<-"Y" #still need to get these from Laetitia
 
 ```
 ### Format samples to schema
 
 ```{r format samples}
+#change all empty columns from logical to character class
+class(arms_samples[,which(sapply(arms_samples, is.logical))])<-"character"
 
 class(arms_samples$occurrenceID)
 class(arms_samples$basisofRecord)
@@ -639,6 +657,9 @@ species<-sub(pattern=".+_(\\d{8})_(\\w+-[a-z]+)_.+", replacement = "\\2", trans_
 ### Format events to schema
 
 ```{r format events}
+#change all empty columns from logical to character class
+class(trans_events[,which(sapply(trans_events, is.logical))])<-"character"
+
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 trans_events$decimalLatitude<-round(as.numeric(trans_events$decimalLatitude),digits = 4)
 trans_events$decimalLongitude<-abs(round(as.numeric(trans_events$decimalLongitude),digits = 4))*-1
@@ -646,7 +667,7 @@ trans_events$decimalLongitude<-abs(round(as.numeric(trans_events$decimalLongitud
 class(trans_events$eventID)
 class(trans_events$coordinateUncertaintyInMeters)
 class(trans_events$maximumDepthInMeters)
-class(trans_events$minimumDepthInMeters)
+class(trans_events$minimumDepthInMeters)<-"numeric"
 class(trans_events$recordedBy) 
 class(trans_events$samplingProtocol) #some missing. ask Freya to fill this in
 class(trans_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
@@ -654,18 +675,19 @@ class(trans_events$habitatSubstrate) # some missing. ask Freya to fill this in
 class(trans_events$habitatBiotic)
 
 #Recommended fields
-trans_events$eventRemarks<-NA
 class(trans_events$locality)
 class(trans_events$year)
 class(trans_events$month)
 class(trans_events$day)
-trans_events$verbatimCoordinates<-NA
 trans_events$eventMedia<-"Y"
+trans_events$eventTime<-as.character(parse_date_time(trans_events$eventTime, orders="ymdHMS", tz="HST"),format="%H:%M")
 
 ```
 ### Format samples to schema
 
 ```{r format samples}
+#change all empty columns from logical to character class
+class(trans_samples[,which(sapply(trans_samples, is.logical))])<-"character"
 
 class(trans_samples$occurrenceID)
 class(trans_samples$basisofRecord)
@@ -718,7 +740,11 @@ ggsave(trans_map,filename="trans_map.pdf")
 Now to join everything into one monster database
 
 ```{r}
-
+a<-full_join(fish,algae)
+b<-full_join(a,invert)
+c<-full_join(b,meio)
+d<-full_join(c,arms)
+e<-full_join(d,trans)
 
 
 ```
