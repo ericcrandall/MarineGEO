@@ -155,11 +155,12 @@ fish4<-fish3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richne
 fish6<-left_join(fish2,fish4)
 
 
-fishmap<-ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank())
+fish_map<-ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank())
 
-fishmap
+fish_map
 
 
+ggsave(fish_map,filename="fish_map.pdf")
 
 ```
 # Algae
@@ -253,7 +254,7 @@ algae4<-algae3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(rich
 
 algae5<-left_join(algae2,algae4)
 
-algae5<-algae5[which(is.na(algae5$decimalLatitude)),]
+#algae5<-algae5[which(is.na(algae5$decimalLatitude)),]
 #algae5<-algae5[-which(algae5$scientificName=="?"),]
 
 algae5[4,4]<-1
@@ -262,11 +263,12 @@ extra<-algae5[33,]
 algae5<-algae5[-33,] #remove outlier
 
 
-almap<-ggmap(dmap) + geom_point(data = algae5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) + geom_point(data=extra, mapping=aes(x = decimalLongitude, y = decimalLatitude, size=30, color=30))
+algae_map<-ggmap(dmap) + geom_point(data = algae5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) + geom_point(data=extra, mapping=aes(x = decimalLongitude, y = decimalLatitude, size=30, color=30))
+#add outlier back in as a red dot size=30
 
-almap
+algae_map
 
-#ggsave(almap,filename="algae_map2.pdf")
+ggsave(algae_map,filename="algae_map.pdf")
 ```
 
 
@@ -392,11 +394,11 @@ invert5<-left_join(invert2,invert4)
 
 
 
-invertmap<-ggmap(dmap) + geom_point(data = invert5[-c(61,62),], mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+invert_map<-ggmap(dmap) + geom_point(data = invert5[-c(61,62),], mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
 
-invertmap
+invert_map
 
-#ggsave(invert,filename="invert_map2.pdf")
+ggsave(invert_map,filename="invert_map.pdf")
 ```
 
 # Meiofauna
@@ -496,11 +498,11 @@ meio5<-left_join(meio2,meio4)
 
 
 
-meiomap<-ggmap(dmap) + geom_point(data = meio5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+meio_map<-ggmap(dmap) + geom_point(data = meio5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
 
-meiomap
+meio_map
 
-#ggsave(meiomap,filename="meio_map2.pdf")
+ggsave(meio_map,filename="meio_map.pdf")
 ```
 
 # ARMS
@@ -584,11 +586,11 @@ arms5<-left_join(arms2,arms4)
 
 
 
-armsmap<-ggmap(dmap) + geom_point(data = arms5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+arms_map<-ggmap(dmap) + geom_point(data = arms5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
 
-armsmap
+arms_map
 
-#ggsave(almap,filename="arms_map2.pdf")
+ggsave(arms_map,filename="arms_map.pdf")
 ```
 
 
@@ -704,10 +706,19 @@ trans5<-left_join(trans2,trans4)
 
 
 
-transmap<-ggmap(dmap) + geom_point(data = trans5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+trans_map<-ggmap(dmap) + geom_point(data = trans5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
 
-transmap
+trans_map
 
-#ggsave(almap,filename="trans_map2.pdf")
+ggsave(trans_map,filename="trans_map.pdf")
 ```
 
+# Final Database
+
+Now to join everything into one monster database
+
+```{r}
+
+
+
+```
