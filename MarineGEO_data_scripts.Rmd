@@ -25,11 +25,12 @@ bbox<-c(left=-157.85,bottom= 21.38,right=-157.75, top=21.55)
 dmap <- get_map(location = bbox, maptype = "satellite", source = "google")
 
 # to do:
-# split date fields into year, month, day
-# reformat name fields
+# create a single event db from which to join all samples
 # split scientific name into genus and species where appropriate
 # sp. changes lowest known to genus
 # organismScope = bulk lot if individualCount > 1
+# add on location info specific to Kaneohe Bay
+
 ```
 
 # Fish
@@ -74,29 +75,33 @@ fish_samples$eventID<-str_extract(fish_samples$eventID,"KANF\\d\\d\\d")
 #round the lat/longs to four digits (~ 10m uncertainty)
 fish_events$decimalLatitude<-round(as.numeric(fish_events$decimalLatitude),digits = 4)
 fish_events$decimalLongitude<-round(as.numeric(fish_events$decimalLongitude),digits = 4)
-class(fish_events$geoReferenceProtocol)
+
 fish_events$coordinateUncertaintyInMeters<-as.numeric(fish_events$coordinateUncertaintyInMeters) 
 
-class(fish_events$maximumDepthInMeters)
-class(fish_events$minimumDepthInMeters)
-class(fish_events$recordedBy) 
-class(fish_events$samplingProtocol) #some missing. ask Diane to fill this in
+# class(fish_events$geoReferenceProtocol)
+# class(fish_events$maximumDepthInMeters)
+# class(fish_events$minimumDepthInMeters)
+# class(fish_events$recordedBy) 
+# class(fish_events$samplingProtocol) #some missing. ask Diane to fill this in
+# class(fish_events$habitatBiotic)
+
 #remove carriage returns from Geomorphological Zone
 fish_events$habitatGeomorphologicalZone<-str_replace_all(fish_events$habitatGeomorphologicalZone,pattern="\r\n",replacement = "")
 fish_events$habitatSubstrate<-str_replace_all(fish_events$habitatSubstrate,pattern="\r\n",replacement = "")
-class(fish_events$habitatBiotic)
+
 fish_events$year<-as.numeric(fish_events$year)
 fish_events$month<-match(fish_events$month,month.abb)
 fish_events$day<-as.numeric(fish_events$day)
 
 #Recommended fields
-class(fish_events$eventRemarks)
-class(fish_events$locality)
+# class(fish_events$eventRemarks)
+# class(fish_events$locality)
+# class(fish_events$eventRemarks)
+# class(fish_events$verbatimCoordinates)
+# class(fish_events$eventMedia)
+
 #remove ending times from eventTime field
 fish_events$eventTime<-str_extract(string=fish_events$eventTime,pattern="^\\d\\d:\\d\\d")
-class(fish_events$eventRemarks)
-class(fish_events$verbatimCoordinates)
-class(fish_events$eventMedia)
 ```
 ### Format samples to schema
 
@@ -104,19 +109,22 @@ class(fish_events$eventMedia)
 #change all empty columns from logical to character class
 fish_samples[sapply(fish_samples, is.logical)] <- lapply(fish_samples[sapply(fish_samples, is.logical)],  as.character)
 
-class(fish_samples[,which(sapply(fish_samples, is.logical))])<-"character"
-
-class(fish_samples$occurrenceID)
-class(fish_samples$basisofRecord)
-class(fish_samples$catalogNumber)<-"character"
 fish_samples$otherCatalogNumbers<-NULL # drop this for now - it will be replaced by fish_biorep below
-class(fish_samples$organismScope)
-class(fish_samples$eventID)
-class(fish_samples$scientificName) #eventually parse this into taxon categories?
-class(fish_samples$taxonRank) #using this
+
+# class(fish_samples[,which(sapply(fish_samples, is.logical))])<-"character"
+# class(fish_samples$occurrenceID)
+# class(fish_samples$basisofRecord)
+# class(fish_samples$catalogNumber)<-"character"
+# class(fish_samples$organismScope)
+# class(fish_samples$eventID)
+# class(fish_samples$scientificName) #eventually parse this into taxon categories?
+# class(fish_samples$taxonRank) #using this
+# class(fish_samples$individualCount)
+# class(fish_samples$institutionID)
+
+# make identifiedBy go firstname lastname
 fish_samples$identifiedBy<-str_replace(fish_samples$identifiedBy, pattern="(\\w+), (.+)", replacement="\\2 \\1")
-class(fish_samples$individualCount)
-class(fish_samples$institutionID)
+
 
 
 
@@ -193,31 +201,33 @@ algae_events[sapply(algae_events, is.logical)] <- lapply(algae_events[sapply(alg
 
 
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
-class(algae_events$eventID)
+
 algae_events$decimalLatitude<-round(as.numeric(algae_events$decimalLatitude),digits = 4)
 algae_events$decimalLongitude<-abs(round(as.numeric(algae_events$decimalLongitude),digits = 4))*-1
 
-class(algae_events$geoReferenceProtocol) #good
-class(algae_events$coordinateUncertaintyInMeters) #good
-class(algae_events$maximumDepthInMeters) #some missing. ask Melinda to fill this in
-class(algae_events$minimumDepthInMeters)#some missing. ask Melinda to fill this in
-class(algae_events$recordedBy) #some missing. ask Melinda to fill this in
-class(algae_events$samplingProtocol) #some missing. ask Melinda to fill this in
-class(algae_events$`habitatBiotic`)
-class(algae_events$`habitatGeomorphologicalZone`)
-class(algae_events$`habitatSubstrate`)
+# class(algae_events$eventID)
+# class(algae_events$geoReferenceProtocol) #good
+# class(algae_events$coordinateUncertaintyInMeters) #good
+# class(algae_events$maximumDepthInMeters) #some missing. ask Melinda to fill this in
+# class(algae_events$minimumDepthInMeters)#some missing. ask Melinda to fill this in
+# class(algae_events$recordedBy) #some missing. ask Melinda to fill this in
+# class(algae_events$samplingProtocol) #some missing. ask Melinda to fill this in
+# class(algae_events$`habitatBiotic`)
+# class(algae_events$`habitatGeomorphologicalZone`)
+# class(algae_events$`habitatSubstrate`)
 
 
 #Recommended fields
-class(algae_events$eventRemarks)
-class(algae_events$locality)
+# class(algae_events$eventRemarks)
+# class(algae_events$locality)
+# class(algae_events$eventRemarks)
+# class(algae_events$verbatimCoordinates)
+# class(algae_events$eventMedia)
 
 #format time correctly
 algae_events$eventTime<-as.character(parse_date_time(algae_events$eventTime, orders="ymdHMS", tz="HST"),format="%H:%M")
 
-class(algae_events$eventRemarks)
-class(algae_events$verbatimCoordinates)
-class(algae_events$eventMedia)
+
 ```
 
 ### Format samples to schema
@@ -226,17 +236,17 @@ class(algae_events$eventMedia)
 #change all empty columns from logical to character class
 algae_samples[sapply(algae_samples, is.logical)] <- lapply(algae_samples[sapply(algae_samples, is.logical)],  as.character)
 
-class(algae_samples$occurrenceID)
-algae_samples$basisofRecord<-"specimen"
-class(algae_samples$catalogNumber)
-class(algae_samples$otherCatalogNumbers)
-class(algae_samples$organismScope)
+# class(algae_samples$occurrenceID)
+# class(algae_samples$catalogNumber)
+# class(algae_samples$otherCatalogNumbers)
+# class(algae_samples$organismScope)
+# class(algae_samples$eventID)
+# class(algae_samples$scientificName) #eventually parse this into taxon categories?
+# class(algae_samples$taxonRank) # Melinda needs to populate this...
+# class(algae_samples$identifiedBy)
+# class(algae_samples$individualCount)
 
-class(algae_samples$eventID)
-class(algae_samples$scientificName) #eventually parse this into taxon categories?
-algae_samples$taxonRank<-as.character(algae_samples$taxonRank) # Melinda needs to populate this...
-class(algae_samples$identifiedBy)
-class(algae_samples$individualCount)
+algae_samples$basisofRecord<-"specimen"
 algae_samples$institutionID<-"USNM"
 
 
@@ -343,8 +353,9 @@ invert_events$decimalLongitude<-abs(round(as.numeric(invert_events$decimalLongit
 
 invert_events$geoReferenceProtocol<-"GPS"
 invert_events$coordinateUncertaintyInMeters<-100
-class(invert_events$maximumDepthInMeters) #some missing. ask John to fill this in
-class(invert_events$minimumDepthInMeters)#some missing. ask John to fill this in
+
+# class(invert_events$maximumDepthInMeters) #some missing. ask John to fill this in
+# class(invert_events$minimumDepthInMeters)#some missing. ask John to fill this in
 
 #Format the date properly, get rid of the "raw" field
 invert_events$day<-day(invert_events$eventDate)
@@ -352,15 +363,15 @@ invert_events$month<-month(invert_events$eventDate)
 invert_events$year<-year(invert_events$eventDate)
 invert_events$eventDate<-NULL
 
-class(invert_events$recordedBy) #good
-class(invert_events$samplingProtocol) #some missing. ask John to fill this in
-class(invert_events$habitatGeomorphologicalZone) #some missing. ask John to fill this in. #this needs to be aligned with the schema
-class(invert_events$habitatSubstrate) # some missing. ask John to fill this in. #this needs to be aligned with the schema
+# class(invert_events$recordedBy) #good
+# class(invert_events$samplingProtocol) #some missing. ask John to fill this in
+# class(invert_events$habitatGeomorphologicalZone) #some missing. ask John to fill this in. #this needs to be aligned with the schema
+# class(invert_events$habitatSubstrate) # some missing. ask John to fill this in. #this needs to be aligned with the schema
 
 
 #Recommended fields
-class(invert_events$locality)
-class(invert_events$eventRemarks)
+# class(invert_events$locality)
+# class(invert_events$eventRemarks)
 
 ```
 ### Format samples to schema
@@ -369,13 +380,17 @@ class(invert_events$eventRemarks)
 #change all empty columns from logical to character class
 invert_samples[sapply(invert_samples, is.logical)] <- lapply(invert_samples[sapply(invert_samples, is.logical)],  as.character)
 
-class(invert_samples$occurrenceID)
+# class(invert_samples$occurrenceID)
+# class(invert_samples$scientificName) #eventually parse this into taxon categories?
+# class(invert_samples$taxonRank) #using this
+
 invert_samples$basisOfRecord<-"specimen"
 invert_samples$organismScope<-"organism"
+
 #remove eventIDs that have two possibilities, assume it is the first one for now
 invert_samples$eventID<-gsub(pattern="(\\w) or \\w",replacement="\\1",x= invert_samples$eventID,perl=T)
-class(invert_samples$scientificName) #eventually parse this into taxon categories?
-class(invert_samples$taxonRank) #using this
+
+
 invert_samples$identifiedBy<-"Paulay, Gustav" # for now. don't know if they kept this info
 #assume that blank counts had 1 individual for now
 invert_samples$individualCount[is.na(invert_samples$individualCount)]<-1
@@ -451,23 +466,26 @@ meio_events$decimalLatitude<-round(as.numeric(meio_events$decimalLatitude),digit
 meio_events$decimalLongitude<-abs(round(as.numeric(meio_events$decimalLongitude),digits = 4))*-1
 
 meio_events$coordinateUncertaintyInMeters<-100
-class(meio_events$maximumDepthInMeters)
-class(meio_events$minimumDepthInMeters)
-class(meio_events$recordedBy) #ask Freya to follow format - add last names, and pipes between names
-class(meio_events$samplingProtocol) #some missing. ask Freya to fill this in
-class(meio_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
-class(meio_events$habitatSubstrate) # some missing. ask Freya to fill this in
-class(meio_events$habitatBiotic)
+
+# class(meio_events$maximumDepthInMeters)
+# class(meio_events$minimumDepthInMeters)
+# class(meio_events$recordedBy) #ask Freya to follow format - add last names, and pipes between names
+# class(meio_events$samplingProtocol) #some missing. ask Freya to fill this in
+# class(meio_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
+# class(meio_events$habitatSubstrate) # some missing. ask Freya to fill this in
+# class(meio_events$habitatBiotic)
 
 #Recommended fields
-class(meio_events$locality)
+# class(meio_events$locality)
+# class(meio_events$eventRemarks)
+
 meio_events$day<-day(meio_events$eventDate)
 meio_events$month<-month(meio_events$eventDate)
 meio_events$year<-year(meio_events$eventDate)
 meio_events$eventDate<-NULL
 
 meio_events$eventTime<-as.character(parse_date_time(meio_events$eventTime, orders="ymdHMS", tz="HST"),format="%H:%M")
-class(meio_events$eventRemarks)
+
 meio_events$eventMedia<-"N"
 
 ```
@@ -477,17 +495,19 @@ meio_events$eventMedia<-"N"
 #change all empty columns from logical to character class
 meio_samples[sapply(meio_samples, is.logical)] <- lapply(meio_samples[sapply(meio_samples, is.logical)],  as.character)
 
-class(meio_samples$occurrenceID)
 meio_samples$basisofRecord<-"specimen" #check with Frey that this is correct
-class(meio_samples$catalogNumber)
-class(meio_samples$otherCatalogNumbers)
-class(meio_samples$organismScope)
-class(meio_samples$eventID)
-class(meio_samples$scientificName) #eventually parse this into taxon categories?
-class(meio_samples$taxonRank) #using this
-class(meio_samples$identifiedBy)
-class(meio_samples$individualCount)
 meio_samples$institutionID<-"USNM"
+
+# class(meio_samples$scientificName) #eventually parse this into taxon categories?
+# class(meio_samples$taxonRank) #using this
+# class(meio_samples$occurrenceID)
+# class(meio_samples$catalogNumber)
+# class(meio_samples$otherCatalogNumbers)
+# class(meio_samples$organismScope)
+# class(meio_samples$eventID)
+# class(meio_samples$identifiedBy)
+# class(meio_samples$individualCount)
+
 
 ```
 
@@ -541,22 +561,24 @@ arms_events[sapply(arms_events, is.logical)] <- lapply(arms_events[sapply(arms_e
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 arms_events$decimalLatitude<-round(as.numeric(arms_events$decimalLatitude),digits = 4)
 arms_events$decimalLongitude<-abs(round(as.numeric(arms_events$decimalLongitude),digits = 4))*-1
-class(arms_events$geoReferenceProtocol)
-class(arms_events$eventID)
 arms_events$coordinateUncertaintyInMeters<-10
-class(arms_events$maximumDepthInMeters)
-class(arms_events$minimumDepthInMeters)<-"numeric"
-class(arms_events$recordedBy) #ask Laetitia to follow format
-class(arms_events$samplingProtocol) #some missing. ask Freya to fill this in
-class(arms_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
-class(arms_events$habitatSubstrate) # some missing. ask Freya to fill this in
-class(arms_events$habitatBiotic)
+
+# class(arms_events$geoReferenceProtocol)
+# class(arms_events$eventID)
+# class(arms_events$maximumDepthInMeters)
+# class(arms_events$minimumDepthInMeters)<-"numeric"
+# class(arms_events$recordedBy) #ask Laetitia to follow name format
+# class(arms_events$samplingProtocol)
+# class(arms_events$habitatGeomorphologicalZone)
+# class(arms_events$habitatSubstrate) 
+# class(arms_events$habitatBiotic)
 
 #Recommended fields
-class(arms_events$locality)
-class(arms_events$year)
-class(arms_events$month)
-class(arms_events$day)
+# class(arms_events$locality)
+# class(arms_events$year)
+# class(arms_events$month)
+# class(arms_events$day)
+
 arms_events$eventMedia<-"Y" #still need to get these from Laetitia
 
 ```
@@ -566,18 +588,20 @@ arms_events$eventMedia<-"Y" #still need to get these from Laetitia
 #change all empty columns from logical to character class
 arms_samples[sapply(arms_samples, is.logical)] <- lapply(arms_samples[sapply(arms_samples, is.logical)],  as.character)
 
-class(arms_samples$occurrenceID)
-class(arms_samples$basisofRecord)
-class(arms_samples$catalogNumber)
-class(arms_samples$otherCatalogNumbers)
-class(arms_samples$organismScope) #were there some slurries too?
-class(arms_samples$eventID)
-class(arms_samples$scientificName) #eventually parse this into taxon categories?
-class(arms_samples$taxonRank) #using this
-class(arms_samples$identifiedBy)
-class(arms_samples$individualCount)
+# class(arms_samples$occurrenceID)
+# class(arms_samples$basisofRecord)
+# class(arms_samples$catalogNumber)
+# class(arms_samples$otherCatalogNumbers)
+# class(arms_samples$organismScope) #were there some slurries too?
+# class(arms_samples$eventID)
+# class(arms_samples$scientificName) #eventually parse this into taxon categories?
+# class(arms_samples$taxonRank) #using this
+# class(arms_samples$identifiedBy)
+# class(arms_samples$individualCount)
+
 # change NAs for individualCount to 1 for now
 arms_samples$individualCount[which(is.na(arms_samples$individualCount))]<-1
+
 arms_samples$institutionID<-"USNM"
 
 ```
@@ -663,21 +687,22 @@ trans_events[sapply(trans_events, is.logical)] <- lapply(trans_events[sapply(tra
 trans_events$decimalLatitude<-round(as.numeric(trans_events$decimalLatitude),digits = 4)
 trans_events$decimalLongitude<-abs(round(as.numeric(trans_events$decimalLongitude),digits = 4))*-1
 
-class(trans_events$eventID)
-class(trans_events$coordinateUncertaintyInMeters)
-class(trans_events$maximumDepthInMeters)
-class(trans_events$minimumDepthInMeters)<-"numeric"
-class(trans_events$recordedBy) 
-class(trans_events$samplingProtocol) #some missing. ask Freya to fill this in
-class(trans_events$habitatGeomorphologicalZone) #some missing. ask Freya to fill this in
-class(trans_events$habitatSubstrate) # some missing. ask Freya to fill this in
-class(trans_events$habitatBiotic)
+# class(trans_events$eventID)
+# class(trans_events$coordinateUncertaintyInMeters)
+# class(trans_events$maximumDepthInMeters)
+# class(trans_events$minimumDepthInMeters)<-"numeric"
+# class(trans_events$recordedBy) 
+# class(trans_events$samplingProtocol)
+# class(trans_events$habitatGeomorphologicalZone)
+# class(trans_events$habitatSubstrate)
+# class(trans_events$habitatBiotic)
 
 #Recommended fields
-class(trans_events$locality)
-class(trans_events$year)
-class(trans_events$month)
-class(trans_events$day)
+# class(trans_events$locality)
+# class(trans_events$year)
+# class(trans_events$month)
+# class(trans_events$day)
+
 trans_events$eventMedia<-"Y"
 trans_events$eventTime<-as.character(parse_date_time(trans_events$eventTime, orders="ymdHMS", tz="HST"),format="%H:%M")
 
@@ -688,16 +713,17 @@ trans_events$eventTime<-as.character(parse_date_time(trans_events$eventTime, ord
 #change all empty columns from logical to character class
 trans_samples[sapply(trans_samples, is.logical)] <- lapply(trans_samples[sapply(trans_samples, is.logical)],  as.character)
 
-class(trans_samples$occurrenceID)
-class(trans_samples$basisofRecord)
-class(trans_samples$catalogNumber)
-class(trans_samples$otherCatalogNumbers)
-class(trans_samples$organismScope)
-class(trans_samples$eventID)
-class(trans_samples$scientificName) #eventually parse this into taxon categories?
-class(trans_samples$taxonRank) #using this
-class(trans_samples$identifiedBy)
-class(trans_samples$individualCount)
+# class(trans_samples$occurrenceID)
+# class(trans_samples$basisofRecord)
+# class(trans_samples$catalogNumber)
+# class(trans_samples$otherCatalogNumbers)
+# class(trans_samples$organismScope)
+# class(trans_samples$eventID)
+# class(trans_samples$scientificName) #eventually parse this into taxon categories?
+# class(trans_samples$taxonRank) #using this
+# class(trans_samples$identifiedBy)
+# class(trans_samples$individualCount)
+
 trans_samples$institutionID<-"USNM"
 
 
