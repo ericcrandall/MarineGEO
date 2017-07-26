@@ -125,9 +125,7 @@ fish_samples$otherCatalogNumbers<-NULL # drop this for now - it will be replaced
 # make identifiedBy go firstname lastname
 fish_samples$identifiedBy<-str_replace(fish_samples$identifiedBy, pattern="(\\w+), (.+)", replacement="\\2 \\1")
 
-
-
-
+fish_samples$catalogNumber<-as.character(fish_samples$catalogNumber)
 
 ```
 
@@ -177,7 +175,7 @@ fish_map<-ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongit
 fish_map
 
 
-ggsave(fish_map,filename="fish_map.pdf")
+ggsave(fish_map,filename="./output/fish_map.pdf")
 
 ```
 # Algae
@@ -293,7 +291,7 @@ algae_map<-ggmap(dmap) + geom_point(data = algae5, mapping = aes(x = decimalLong
 
 algae_map
 
-ggsave(algae_map,filename="algae_map.pdf")
+ggsave(algae_map,filename="./output/algae_map.pdf")
 ```
 
 
@@ -426,7 +424,7 @@ invert_map<-ggmap(dmap) + geom_point(data = invert5[-c(61,62),], mapping = aes(x
 
 invert_map
 
-ggsave(invert_map,filename="invert_map.pdf")
+ggsave(invert_map,filename="./output/invert_map.pdf")
 ```
 
 # Meiofauna
@@ -537,7 +535,7 @@ meio_map<-ggmap(dmap) + geom_point(data = meio5, mapping = aes(x = decimalLongit
 
 meio_map
 
-ggsave(meio_map,filename="meio_map.pdf")
+ggsave(meio_map,filename="./output/meio_map.pdf")
 ```
 
 # ARMS
@@ -563,10 +561,11 @@ arms_events$decimalLatitude<-round(as.numeric(arms_events$decimalLatitude),digit
 arms_events$decimalLongitude<-abs(round(as.numeric(arms_events$decimalLongitude),digits = 4))*-1
 arms_events$coordinateUncertaintyInMeters<-10
 
+arms_events$minimumDepthInMeters<-as.numeric(arms_events$minimumDepthInMeters)
+
 # class(arms_events$geoReferenceProtocol)
 # class(arms_events$eventID)
 # class(arms_events$maximumDepthInMeters)
-# class(arms_events$minimumDepthInMeters)<-"numeric"
 # class(arms_events$recordedBy) #ask Laetitia to follow name format
 # class(arms_events$samplingProtocol)
 # class(arms_events$habitatGeomorphologicalZone)
@@ -632,7 +631,7 @@ arms_map<-ggmap(dmap) + geom_point(data = arms5, mapping = aes(x = decimalLongit
 
 arms_map
 
-ggsave(arms_map,filename="arms_map.pdf")
+ggsave(arms_map,filename="./output/arms_map.pdf")
 ```
 
 
@@ -687,10 +686,11 @@ trans_events[sapply(trans_events, is.logical)] <- lapply(trans_events[sapply(tra
 trans_events$decimalLatitude<-round(as.numeric(trans_events$decimalLatitude),digits = 4)
 trans_events$decimalLongitude<-abs(round(as.numeric(trans_events$decimalLongitude),digits = 4))*-1
 
+trans_events$minimumDepthInMeters<-as.numeric(trans_events$minimumDepthInMeters)
+
 # class(trans_events$eventID)
 # class(trans_events$coordinateUncertaintyInMeters)
 # class(trans_events$maximumDepthInMeters)
-# class(trans_events$minimumDepthInMeters)<-"numeric"
 # class(trans_events$recordedBy) 
 # class(trans_events$samplingProtocol)
 # class(trans_events$habitatGeomorphologicalZone)
@@ -757,7 +757,7 @@ trans_map<-ggmap(dmap) + geom_point(data = trans5, mapping = aes(x = decimalLong
 
 trans_map
 
-ggsave(trans_map,filename="trans_map.pdf")
+ggsave(trans_map,filename="./output/trans_map.pdf")
 ```
 
 # Final Database
@@ -777,6 +777,6 @@ flat_schema<-as.vector(read.csv("flat_schema.csv", header=F, stringsAsFactors = 
 #reduce the joined database to just the columns in the schema, and sort on column order
 MarineGEOHI2<-MarineGEOHI[,match(flat_schema, names(MarineGEOHI))]
 
-write.csv(MarineGEOHI2,"MarineGEOHI_data_1.0.csv",row.names = F)
+write.csv(MarineGEOHI2,"./output/MarineGEOHI_data_1.0.csv",row.names = F)
 
 ```
