@@ -669,11 +669,28 @@ trans_events<-left_join(trans_events, trans_eventMedia, by="eventID")
 
 # organism photos
 
+## delete the field to be added later
+trans_samples$associatedMedia<-"NULL"
+
 #pop off the eventID again into its own field
 trans_organism_photos$eventID<-sub(pattern="(KANV\\d\\d\\d)_.+",replacement = "\\1", trans_organism_photos$associatedMedia, perl=T)
 
 #pop off the species name into its own field
-species<-sub(pattern=".+_(\\d{8})_(\\w+-[a-z]+)_.+", replacement = "\\2", trans_organism_photos$associatedMedia,perl=T)
+trans_organism_photos$scientificName<-sub(pattern=".+_(\\d{8})_(\\w+-[a-z]+)_.+", replacement = "\\2", trans_organism_photos$associatedMedia,perl=T)
+trans_organism_photos$scientificName<-sub(pattern="-", replacement=" ",x = trans_organism_photos$scientificName)
+
+#pop off the initials of the collector, and replace with full name
+trans_organism_photos$identifiedBy<-str_extract(pattern="ZF|RW", string=trans_organism_photos$associatedMedia)
+trans_organism_photos$identifiedBy[which(trans_organism_photos$identifiedBy=="ZF")]<-"Zach Foltz"
+trans_organism_photos$identifiedBy[which(trans_organism_photos$identifiedBy=="RW")]<-"Ross Whippo"
+
+#use ddply to lump all associatedMedia into a single field, separated by a |
+trans_associatedMedia<-ddply(trans_organism_photos, c("eventID","scientificName","identifiedBy"), transform, associatedMedia = paste(associatedMedia, collapse = "|"))
+
+#remove all but the first instance
+trans_associatedMedia<-trans_associatedMedia[!duplicated(trans_associatedMedia$associatedMedia),]
+
+trans_samples<-left_join(trans_samples, trans_associatedMedia, by=c("eventID","scientificName","identifiedBy"))
 
 ```
 
