@@ -3,7 +3,7 @@ title: "MarineGEO Data Formatting, Summarizing and joining"
 author: "Eric D. Crandall"
 date: "5/29/2017"
 output: 
-  html_document:
+  html_notebook:
     toc: yes
 ---
 
@@ -63,15 +63,15 @@ fish_genetic<-read_excel(path="/Users/eric/google_drive/MarineGEO/Fish/FISH_DATA
 
 ### Format events to schema
 
-```{r format events}
+```{r format fish events}
 #change all empty columns from logical to character class
-class(fish_events[,which(sapply(fish_events, is.logical))])<-"character"
+fish_events[sapply(fish_events, is.logical)] <- lapply(fish_events[sapply(fish_events, is.logical)],  as.character)
 
 #change eventID to just the KANF value
 fish_events$eventID<-str_extract(fish_events$eventID,"KANF\\d\\d\\d")
 fish_samples$eventID<-str_extract(fish_samples$eventID,"KANF\\d\\d\\d")
 
-#round the 
+#round the lat/longs to four digits (~ 10m uncertainty)
 fish_events$decimalLatitude<-round(as.numeric(fish_events$decimalLatitude),digits = 4)
 fish_events$decimalLongitude<-round(as.numeric(fish_events$decimalLongitude),digits = 4)
 class(fish_events$geoReferenceProtocol)
@@ -92,15 +92,18 @@ fish_events$day<-as.numeric(fish_events$day)
 #Recommended fields
 class(fish_events$eventRemarks)
 class(fish_events$locality)
-class(fish_events$eventTime)
+#remove ending times from eventTime field
+fish_events$eventTime<-str_extract(string=fish_events$eventTime,pattern="^\\d\\d:\\d\\d")
 class(fish_events$eventRemarks)
 class(fish_events$verbatimCoordinates)
 class(fish_events$eventMedia)
 ```
 ### Format samples to schema
 
-```{r format samples}
+```{r format fish samples}
 #change all empty columns from logical to character class
+fish_samples[sapply(fish_samples, is.logical)] <- lapply(fish_samples[sapply(fish_samples, is.logical)],  as.character)
+
 class(fish_samples[,which(sapply(fish_samples, is.logical))])<-"character"
 
 class(fish_samples$occurrenceID)
@@ -121,7 +124,7 @@ class(fish_samples$institutionID)
 ```
 
 ### Format the biorepository info
-```{r}
+```{r fish biorepository}
 colnames(fish_genetic)[5]<-"BiorepositoryID"
 colnames(fish_genetic)[6]<-"tissueNotes"
 colnames(fish_genetic)[2]<-"occurrenceID"
@@ -134,7 +137,7 @@ fish_biorep$otherCatalogNumbers<-as.character(fish_biorep$otherCatalogNumbers)
 
 ### Join the event data onto the occurrence data
 
-```{r}
+```{r fish join}
 
 #first join the biorep numbers to this data
 fish_samples<-left_join(fish_samples,fish_biorep[,c(2,6,7)],by="occurrenceID")
@@ -146,7 +149,7 @@ fish<-left_join(fish_samples,fish_events,by="eventID")
 
 ## Make a Map
 
-```{r Fish_maps}
+```{r fish maps}
 #optionally make it from the points provided
 #bbox<-make_bbox(lon=fish2$decimalLongitude,lat=fish2$decimalLatitude)
 #by individual
@@ -174,7 +177,7 @@ ggsave(fish_map,filename="fish_map.pdf")
 ## Import and Format
 
 ### Import
-```{r Algae_import}
+```{r Algae import}
 #Add in KANI and KANM stations to events, edit eventIDs for capitalization
 
 algae_samples<-read_excel("/Users/eric/google_drive/MarineGEO/algae/MarineGEOHI_bioassessment_master_KANA.xlsx", sheet="Sample")
@@ -184,9 +187,9 @@ algae_events<-read_excel("/Users/eric/google_drive/MarineGEO/algae/MarineGEOHI_b
 
 ### Format events to schema
 
-```{r Format events}
+```{r Format algae events}
 #change all empty columns from logical to character class
-class(algae_events[,which(sapply(algae_events, is.logical))])<-"character"
+algae_events[sapply(algae_events, is.logical)] <- lapply(algae_events[sapply(algae_events, is.logical)],  as.character)
 
 
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
@@ -219,9 +222,9 @@ class(algae_events$eventMedia)
 
 ### Format samples to schema
 
-```{r format samples}
+```{r format algae samples}
 #change all empty columns from logical to character class
-class(algae_samples[,which(sapply(algae_samples, is.logical))])<-"character"
+algae_samples[sapply(algae_samples, is.logical)] <- lapply(algae_samples[sapply(algae_samples, is.logical)],  as.character)
 
 class(algae_samples$occurrenceID)
 algae_samples$basisofRecord<-"specimen"
@@ -231,7 +234,7 @@ class(algae_samples$organismScope)
 
 class(algae_samples$eventID)
 class(algae_samples$scientificName) #eventually parse this into taxon categories?
-algae_samples$taxonRank<-as.character(algae_samples$taxonRank) # Melinda needs to fix this...
+algae_samples$taxonRank<-as.character(algae_samples$taxonRank) # Melinda needs to populate this...
 class(algae_samples$identifiedBy)
 class(algae_samples$individualCount)
 algae_samples$institutionID<-"USNM"
@@ -245,14 +248,14 @@ algae_samples$institutionID<-"USNM"
 
 ### join the event data onto the occurrence data
 
-```{r join}
+```{r join algae}
 
 algae<-left_join(algae_samples,algae_events,by="eventID")
 
 ```
 
 ## Make A Map
-```{r algae_maps}
+```{r algae maps}
 
 
 #by individual
@@ -289,7 +292,7 @@ ggsave(algae_map,filename="algae_map.pdf")
 ## Import and Format
 
 ### Import
-```{r inverts}
+```{r inverts import}
 invert_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Inverts/BKANE_063017_FIMS.xlsx", sheet = "Station", skip=2)
 
 invert_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Inverts/BKANE_063017_FIMS.xlsx", sheet = "Specimen",skip=3)
@@ -309,7 +312,7 @@ invert_samples<-invert_samples[-which(is.na(invert_samples$scientificName)),]
 
 This code will populate `taxonRank` with the lowest known taxonomic category
 
-```{r Taxonomize}
+```{r Inverts Taxonomize}
 
 invert_samples$taxonRank[which(!is.na(invert_samples$Phylum))]<-"Phylum"
 invert_samples$taxonRank[which(!is.na(invert_samples$Class))]<-"Class"
@@ -328,11 +331,11 @@ invert_samples$taxonRank[grep("sp\\.",invert_samples$Species)]<-"Genus"
 
 ### Format events to schema
 
-```{r format events}
+```{r format invert events}
 # Note: invert data need a lot of cleaning, including importing stations from the algae and meiofauna team, and making new stations with "A" or "B" appended. Currently 839 samples do not have station information because of this.
 
 #change all empty columns from logical to character class
-class(invert_events[,which(sapply(invert_events, is.logical))])<-"character"
+invert_events[sapply(invert_events, is.logical)] <- lapply(invert_events[sapply(invert_events, is.logical)],  as.character)
 
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 invert_events$decimalLatitude<-round(as.numeric(invert_events$decimalLatitude),digits = 4)
@@ -351,7 +354,6 @@ invert_events$eventDate<-NULL
 
 class(invert_events$recordedBy) #good
 class(invert_events$samplingProtocol) #some missing. ask John to fill this in
-invert_events$habitatBiotic<-NA #this needs to be aligned with the schema
 class(invert_events$habitatGeomorphologicalZone) #some missing. ask John to fill this in. #this needs to be aligned with the schema
 class(invert_events$habitatSubstrate) # some missing. ask John to fill this in. #this needs to be aligned with the schema
 
@@ -363,14 +365,12 @@ class(invert_events$eventRemarks)
 ```
 ### Format samples to schema
 
-```{r format samples}
+```{r format invert samples}
 #change all empty columns from logical to character class
-class(invert_samples[,which(sapply(invert_samples, is.logical))])<-"character"
+invert_samples[sapply(invert_samples, is.logical)] <- lapply(invert_samples[sapply(invert_samples, is.logical)],  as.character)
 
 class(invert_samples$occurrenceID)
 invert_samples$basisOfRecord<-"specimen"
-invert_samples$catalogNumber<-NA
-invert_samples$otherCatalogNumbers<-NA
 invert_samples$organismScope<-"organism"
 #remove eventIDs that have two possibilities, assume it is the first one for now
 invert_samples$eventID<-gsub(pattern="(\\w) or \\w",replacement="\\1",x= invert_samples$eventID,perl=T)
@@ -387,12 +387,12 @@ invert_samples$institutionID<-"FLMNH"
 
 ### Join the event data onto the occurrence data
 
-```{r}
+```{r invert join}
 invert<-left_join(invert_samples,invert_events,by="eventID")
 ```
 
 ## Make A Map
-```{r invert_maps}
+```{r invert maps}
 #by individual
 invert2<-invert %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
 
@@ -419,7 +419,7 @@ ggsave(invert_map,filename="invert_map.pdf")
 ## Import and Format
 
 ### Import
-```{r import}
+```{r import meiofauna}
 #note meio data still need some cleaning, including importing some stations from inverts and fish, and fixing up eventIDs to have 3 digits instead of 2. There are 27 specimens that do not have station information because of this.
 
 meio_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Meiofauna/Hawaii2017_meiofauna_MarineGEO.xlsx", sheet = "station data", skip=1)
@@ -441,10 +441,10 @@ meio_samples$occurrenceID<-make.unique(meio_samples$occurrenceID, sep="_")
 
 ### Format events to schema
 
-```{r format events}
+```{r format meiofauna events}
 
 #change all empty columns from logical to character class
-class(meio_events[,which(sapply(meio_events, is.logical))])<-"character"
+meio_events[sapply(meio_events, is.logical)] <- lapply(meio_events[sapply(meio_events, is.logical)],  as.character)
 
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 meio_events$decimalLatitude<-round(as.numeric(meio_events$decimalLatitude),digits = 4)
@@ -473,9 +473,9 @@ meio_events$eventMedia<-"N"
 ```
 ### Format samples to schema
 
-```{r format samples}
+```{r format meiofauna samples}
 #change all empty columns from logical to character class
-class(meio_samples[,which(sapply(meio_samples, is.logical))])<-"character"
+meio_samples[sapply(meio_samples, is.logical)] <- lapply(meio_samples[sapply(meio_samples, is.logical)],  as.character)
 
 class(meio_samples$occurrenceID)
 meio_samples$basisofRecord<-"specimen" #check with Frey that this is correct
@@ -493,12 +493,12 @@ meio_samples$institutionID<-"USNM"
 
 ### Join the event data onto the occurrence data
 
-```{r}
+```{r meiofauna join}
 meio<-left_join(meio_samples,meio_events,by="eventID")
 ```
 
 ## Make A Map
-```{r meio_maps}
+```{r meiofauna maps}
 #by individual
 meio2<-meio %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
 
@@ -525,7 +525,7 @@ ggsave(meio_map,filename="meio_map.pdf")
 ## Import and Format
 
 ### Import
-```{r import}
+```{r import arms}
 arms_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/ARMS/MarineGEOHI_bioassessment_master-ARMS.xlsx", sheet = "Station")
 
 arms_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/ARMS/MarineGEOHI_bioassessment_master-ARMS.xlsx", sheet = "Sample")
@@ -534,9 +534,9 @@ arms_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/ARMS/MarineGEO
 
 ### Format events to schema
 
-```{r format events}
+```{r format arms events}
 #change all empty columns from logical to character class
-class(arms_events[,which(sapply(arms_events, is.logical))])<-"character"
+arms_events[sapply(arms_events, is.logical)] <- lapply(arms_events[sapply(arms_events, is.logical)],  as.character)
 
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 arms_events$decimalLatitude<-round(as.numeric(arms_events$decimalLatitude),digits = 4)
@@ -562,9 +562,9 @@ arms_events$eventMedia<-"Y" #still need to get these from Laetitia
 ```
 ### Format samples to schema
 
-```{r format samples}
+```{r format arms samples}
 #change all empty columns from logical to character class
-class(arms_samples[,which(sapply(arms_samples, is.logical))])<-"character"
+arms_samples[sapply(arms_samples, is.logical)] <- lapply(arms_samples[sapply(arms_samples, is.logical)],  as.character)
 
 class(arms_samples$occurrenceID)
 class(arms_samples$basisofRecord)
@@ -584,12 +584,12 @@ arms_samples$institutionID<-"USNM"
 
 ### Join the event data onto the occurrence data
 
-```{r}
+```{r arms join}
 arms<-left_join(arms_samples,arms_events,by="eventID")
 ```
 
 ## Make A Map
-```{r algae_maps}
+```{r arms maps}
 #by individual
 arms2<-arms %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
 
@@ -617,7 +617,7 @@ ggsave(arms_map,filename="arms_map.pdf")
 ## Import and Format
 
 ### Import
-```{r import}
+```{r transects import}
 trans_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Transects/bioassessment_KANV.xlsx", sheet = "Station")
 
 trans_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Transects/bioassessment_KANV.xlsx", sheet = "Sample")
@@ -629,8 +629,8 @@ trans_organism_photos<-read_excel(path="/Users/eric/google_drive/MarineGEO/Trans
 
 ### Format, collapse and merge the media fields
 
-```{r photo fields}
-
+```{r transect photo fields}
+# need to revisit this to see if I can parse out Zach's and Ross' initials to keep their observations separate
 # event photos
 #pop off the eventID into its own field
 trans_event_photos$eventID<-sub(pattern="(KANV\\d\\d\\d)_.+",replacement = "\\1", trans_event_photos$eventMedia, perl=T)
@@ -656,10 +656,9 @@ species<-sub(pattern=".+_(\\d{8})_(\\w+-[a-z]+)_.+", replacement = "\\2", trans_
 
 ### Format events to schema
 
-```{r format events}
+```{r format transect events}
 #change all empty columns from logical to character class
-class(trans_events[,which(sapply(trans_events, is.logical))])<-"character"
-
+trans_events[sapply(trans_events, is.logical)] <- lapply(trans_events[sapply(trans_events, is.logical)],  as.character)
 #round to 4 decimal digits (~10m uncertainty) and meake sure longitude is negative
 trans_events$decimalLatitude<-round(as.numeric(trans_events$decimalLatitude),digits = 4)
 trans_events$decimalLongitude<-abs(round(as.numeric(trans_events$decimalLongitude),digits = 4))*-1
@@ -685,9 +684,9 @@ trans_events$eventTime<-as.character(parse_date_time(trans_events$eventTime, ord
 ```
 ### Format samples to schema
 
-```{r format samples}
+```{r format transect samples}
 #change all empty columns from logical to character class
-class(trans_samples[,which(sapply(trans_samples, is.logical))])<-"character"
+trans_samples[sapply(trans_samples, is.logical)] <- lapply(trans_samples[sapply(trans_samples, is.logical)],  as.character)
 
 class(trans_samples$occurrenceID)
 class(trans_samples$basisofRecord)
@@ -708,12 +707,12 @@ trans_samples$institutionID<-"USNM"
 
 ### Join the event data onto the occurrence data
 
-```{r}
+```{r join transects}
 trans<-left_join(trans_samples,trans_events,by="eventID")
 ```
 
 ## Make A Map
-```{r algae_maps}
+```{r transect maps}
 #by individual
 trans2<-trans %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
 
@@ -752,6 +751,6 @@ flat_schema<-as.vector(read.csv("flat_schema.csv", header=F, stringsAsFactors = 
 #reduce the joined database to just the columns in the schema, and sort on column order
 MarineGEOHI2<-MarineGEOHI[,match(flat_schema, names(MarineGEOHI))]
 
-write.csv(MarineGEOHI2,"MarineGEOHI_data_1.0.csv")
+write.csv(MarineGEOHI2,"MarineGEOHI_data_1.0.csv",row.names = F)
 
 ```
