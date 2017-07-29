@@ -305,15 +305,29 @@ invert_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Inverts/BKANE
 
 invert_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Inverts/BKANE_063017_FIMS.xlsx", sheet = "Specimen",skip=3)
 
+#sponges will be loaded here, cleaned up, and then joined with the rest of the inverts
+sponge_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Sponges/VICENTE_BIOBLITZ2017_SPONGEMETADATA_FIMS.xlsx", sheet = "Sheet1",skip=1)
+
 #remove columns that don't appear in MarineGEO schema
 invert_samples<-invert_samples[,-grep(pattern = "^X",x = names(invert_samples),perl=T)]
+sponge_samples<-sponge_samples[,-grep(pattern = "^X",x = names(sponge_samples),perl=T)]
 invert_events<-invert_events[,-grep(pattern = "^X",x = names(invert_events),perl=T)]
 
 #remove records without occurrenceIDs (temp before final dataset)
 invert_samples<-invert_samples[-which(is.na(invert_samples$scientificName)),]
+sponge_samples<-sponge_samples[-which(is.na(sponge_samples$scientificName)),]
+
+#change all empty columns from logical to character class
+invert_samples[sapply(invert_samples, is.logical)] <- lapply(invert_samples[sapply(invert_samples, is.logical)],  as.character)
 
 
+sponge_samples[sapply(sponge_samples, is.logical)] <- lapply(sponge_samples[sapply(sponge_samples, is.logical)],  as.character)
 
+sponge_samples$phylum[which(is.na(sponge_samples$phylum))]<-"Porifera"
+sponge_samples$eventID<-str_replace(sponge_samples$eventID,pattern="-", replacement="")
+
+
+invert_samples<-full_join(invert_samples,sponge_samples)
 ```
 
 ### Taxonomize
@@ -333,6 +347,7 @@ invert_samples$taxonRank[which(!is.na(invert_samples$Subfamily))]<-"Subfamily"
 invert_samples$taxonRank[which(!is.na(invert_samples$Genus))]<-"Genus"
 invert_samples$taxonRank[which(!is.na(invert_samples$Species))]<-"Species"
 invert_samples$taxonRank[grep("sp\\.",invert_samples$Species)]<-"Genus"
+
 
 
 ```
@@ -375,8 +390,8 @@ invert_events$eventDate<-NULL
 ### Format samples to schema
 
 ```{r format invert samples}
-#change all empty columns from logical to character class
-invert_samples[sapply(invert_samples, is.logical)] <- lapply(invert_samples[sapply(invert_samples, is.logical)],  as.character)
+#change all empty columns from logical to character class moved this up
+#invert_samples[sapply(invert_samples, is.logical)] <- #lapply(invert_samples[sapply(invert_samples, is.logical)],  as.character)
 
 # class(invert_samples$occurrenceID)
 # class(invert_samples$scientificName) #eventually parse this into taxon categories?
@@ -425,6 +440,29 @@ invert_map<-ggmap(dmap) + geom_point(data = invert5[-c(61,62),], mapping = aes(x
 invert_map
 
 ggsave(invert_map,filename="./output/invert_map.pdf")
+```
+## Make A Sponge Map
+```{r sponge maps}
+sponge<-invert[which(invert$phylum=="Porifera"),]
+#by individual
+sponge2<-sponge %>% group_by(decimalLatitude, decimalLongitude) %>% summarize(individualCount=sum(individualCount,na.rm = T)) 
+
+#by species
+sponge3 <- sponge %>% group_by(scientificName, decimalLatitude, decimalLongitude) %>% summarize(count=n())
+
+#richness
+sponge4<-sponge3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richness=n())
+
+sponge5<-left_join(sponge2,sponge4)
+
+
+
+sponge_map<-ggmap(dmap) + geom_point(data = sponge5[-c(61,62),], mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+
+sponge_map
+
+ggsave(sponge_map,filename="./output/sponge_map.pdf")
+
 ```
 
 # Meiofauna
