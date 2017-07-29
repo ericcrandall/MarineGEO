@@ -475,17 +475,16 @@ ggsave(sponge_map,filename="./output/sponge_map.pdf")
 
 meio_events<-read_excel(path="/Users/eric/google_drive/MarineGEO/Meiofauna/Hawaii2017_meiofauna_MarineGEO.xlsx", sheet = "station data", skip=1)
 
-meio_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Meiofauna/Hawaii2017_meiofauna_MarineGEO.xlsx", sheet = "specimen data",skip=2)
+meio_samples<-read_excel(path="/Users/eric/google_drive/MarineGEO/Meiofauna/Hawaii2017_meiofauna_MarineGEO.xlsx", sheet = "specimen data",skip=1)
 
 #remove columns that don't appear in MarineGEO schema
 meio_samples<-meio_samples[,-grep(pattern = "^X",x = names(meio_samples),perl=T)]
 meio_events<-meio_events[,-grep(pattern = "^X",x = names(meio_events),perl=T)]
 
-#add occurrence IDs to one investigators samples
-meio_samples$occurrenceID[which(is.na(meio_samples$occurrenceID))]<-"UJ" 
-
+#add occurrence IDs to one investigators samples - this has been taken care of now
+#meio_samples$occurrenceID[which(is.na(meio_samples$occurrenceID))]<-"UJ" 
 #make occurrence IDs unique
-meio_samples$occurrenceID<-make.unique(meio_samples$occurrenceID, sep="_")
+#meio_samples$occurrenceID<-make.unique(meio_samples$occurrenceID, sep="_")
 
 
 ```
@@ -493,6 +492,8 @@ meio_samples$occurrenceID<-make.unique(meio_samples$occurrenceID, sep="_")
 ### Format events to schema
 
 ```{r format meiofauna events}
+
+#Missing station KANM087!!!
 
 #change all empty columns from logical to character class
 meio_events[sapply(meio_events, is.logical)] <- lapply(meio_events[sapply(meio_events, is.logical)],  as.character)
@@ -502,6 +503,8 @@ meio_events$decimalLatitude<-round(as.numeric(meio_events$decimalLatitude),digit
 meio_events$decimalLongitude<-abs(round(as.numeric(meio_events$decimalLongitude),digits = 4))*-1
 
 meio_events$coordinateUncertaintyInMeters<-100
+meio_events$minimumDepthInMeters<-as.numeric(meio_events$minimumDepthInMeters)
+meio_events$maximumDepthInMeters<-as.numeric(meio_events$maximumDepthInMeters)
 
 # class(meio_events$maximumDepthInMeters)
 # class(meio_events$minimumDepthInMeters)
@@ -832,6 +835,6 @@ flat_schema<-as.vector(read.csv("flat_schema.csv", header=F, stringsAsFactors = 
 #reduce the joined database to just the columns in the schema, and sort on column order
 MarineGEOHI2<-MarineGEOHI[,match(flat_schema, names(MarineGEOHI))]
 
-write.csv(MarineGEOHI2,"./output/MarineGEOHI_data_1.0.csv",row.names = F)
+write.csv(MarineGEOHI2,"./output/MarineGEOHI_data_1.1.csv",row.names = F)
 
 ```
