@@ -571,6 +571,9 @@ invert_samples$organismScope<-"organism"
 #remove eventIDs that have two possibilities, assume it is the first one for now
 invert_samples$eventID<-gsub(pattern="(\\w) or \\w",replacement="\\1",x= invert_samples$eventID,perl=T)
 
+#remove the A,B,C etc. from the ends of eventIDs until the IZ team fixes them up to be meaningful
+invert_samples$eventID<-str_replace(string=invert_samples$eventID, pattern="(KAN\\w\\d\\d\\d)[A-Z]",replacement="\\1")
+
 #fix arms eventIDs
 invert_samples$eventID[grep(pattern="KANEO",invert_samples$eventID)]<-str_replace(string=invert_samples$eventID[grep(pattern="KANEO",invert_samples$eventID)],pattern="KANEO\\d(\\d\\d)", replacement="KANEO_2017_ARMS\\1")
 
