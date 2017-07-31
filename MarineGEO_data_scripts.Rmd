@@ -300,7 +300,6 @@ trans_events$minimumDepthInMeters<-as.numeric(trans_events$minimumDepthInMeters)
 # class(trans_events$month)
 # class(trans_events$day)
 
-trans_events$eventMedia<-"Y"
 trans_events$eventTime<-as.character(parse_date_time(trans_events$eventTime, orders="ymdHMS", tz="HST"),format="%H:%M")
 
 ```
