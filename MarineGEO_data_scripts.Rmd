@@ -21,7 +21,7 @@ library(lubridate)
 library(stringr)
 filedir<-"~/google_drive/MarineGEO"
 
-bbox<-c(left=-157.85,bottom= 21.38,right=-157.75, top=21.55)
+bbox<-c(left=-157.85,bottom= 21.36,right=-157.75, top=21.55)
 dmap <- get_map(location = bbox, maptype = "satellite", source = "google")
 
 # to do:
@@ -204,6 +204,8 @@ meio_events$maximumDepthInMeters<-as.numeric(meio_events$maximumDepthInMeters)
 # class(meio_events$locality)
 # class(meio_events$eventRemarks)
 
+#format the $%*& date correctly
+meio_events$eventDate<-as.Date(as.numeric(meio_events$eventDate), origin="1900/01/01")
 meio_events$day<-day(meio_events$eventDate)
 meio_events$month<-month(meio_events$eventDate)
 meio_events$year<-year(meio_events$eventDate)
