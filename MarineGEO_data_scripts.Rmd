@@ -417,7 +417,9 @@ fish4<-fish3 %>% group_by(decimalLatitude,decimalLongitude) %>% summarize(richne
 fish6<-left_join(fish2,fish4)
 
 
-fish_map<-ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank())
+fish_map<-ggmap(dmap) + geom_point(data = fish6, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness/Site",order=1), size=guide_legend(title="Individual Count/Site"),order=2) + theme(axis.title=element_blank(), axis.text=element_text(color="black",size = 12), plot.title = element_text(hjust=0.5)) + geom_segment(arrow=arrow(length=unit(4,"mm"), type="closed", angle=40), 
+               aes(x=-157.75,xend=-157.75,y=21.495,yend=21.5), colour=hcl(240,50,80)) + geom_label(aes(x=-157.75, y=21.495, label="N"),
+             size=3, label.padding=unit(1,"mm"), label.r=unit(0.4,"lines")) + ggtitle(label="Fishes")
 
 fish_map
 
@@ -495,7 +497,9 @@ extra<-algae5[33,]
 algae5<-algae5[-33,] #remove outlier
 
 
-algae_map<-ggmap(dmap) + geom_point(data = algae5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) + geom_point(data=extra, mapping=aes(x = decimalLongitude, y = decimalLatitude, size=30, color=30))
+algae_map<-ggmap(dmap) + geom_point(data = algae5,  mapping = aes(x = decimalLongitude, y = decimalLatitude, size=count, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness/Site",order=1), size=guide_legend(title="Individual Count/Site"),order=2) + theme(axis.title=element_blank(), axis.text=element_text(color="black",size = 12), plot.title = element_text(hjust=0.5)) + geom_segment(arrow=arrow(length=unit(4,"mm"), type="closed", angle=40), 
+               aes(x=-157.75,xend=-157.75,y=21.495,yend=21.5), colour=hcl(240,50,80)) + geom_label(aes(x=-157.75, y=21.495, label="N"),
+             size=3, label.padding=unit(1,"mm"), label.r=unit(0.4,"lines")) + ggtitle(label="Algae")
 #add outlier back in as a red dot size=30
 
 algae_map
@@ -610,7 +614,9 @@ invert5<-left_join(invert2,invert4)
 
 
 
-invert_map<-ggmap(dmap) + geom_point(data = invert5[-c(length(invert5$richness)-1,length(invert5$richness)),], mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+invert_map<-ggmap(dmap) + geom_point(data = invert5[-c(length(invert5$richness)-1,length(invert5$richness)),], mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness/Site",order=1), size=guide_legend(title="Individual Count/Site"),order=2) + theme(axis.title=element_blank(), axis.text=element_text(color="black",size = 12), plot.title = element_text(hjust=0.5)) + geom_segment(arrow=arrow(length=unit(4,"mm"), type="closed", angle=40), 
+               aes(x=-157.75,xend=-157.75,y=21.495,yend=21.5), colour=hcl(240,50,80)) + geom_label(aes(x=-157.75, y=21.495, label="N"),
+             size=3, label.padding=unit(1,"mm"), label.r=unit(0.4,"lines")) + ggtitle(label="Macroinvertebrates")
 
 invert_map
 
@@ -637,7 +643,9 @@ sponge5<-left_join(sponge2,sponge4)
 
 
 
-sponge_map<-ggmap(dmap) + geom_point(data = sponge5[-c(61,62),], mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+sponge_map<-ggmap(dmap) + geom_point(data = sponge5[-c(61,62),], mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness/Site",order=1), size=guide_legend(title="Individual Count/Site"),order=2) + theme(axis.title=element_blank(), axis.text=element_text(color="black",size = 12), plot.title = element_text(hjust=0.5)) + geom_segment(arrow=arrow(length=unit(4,"mm"), type="closed", angle=40), 
+               aes(x=-157.75,xend=-157.75,y=21.495,yend=21.5), colour=hcl(240,50,80)) + geom_label(aes(x=-157.75, y=21.495, label="N"),
+             size=3, label.padding=unit(1,"mm"), label.r=unit(0.4,"lines")) + ggtitle(label="Sponges")
 
 sponge_map
 
@@ -709,8 +717,9 @@ meio5<-left_join(meio2,meio4)
 
 
 
-meio_map<-ggmap(dmap) + geom_point(data = meio5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
-
+meio_map<-ggmap(dmap) + geom_point(data = meio5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness/Site",order=1), size=guide_legend(title="Individual Count/Site"),order=2) + theme(axis.title=element_blank(), axis.text=element_text(color="black",size = 12), plot.title = element_text(hjust=0.5)) + geom_segment(arrow=arrow(length=unit(4,"mm"), type="closed", angle=40), 
+               aes(x=-157.75,xend=-157.75,y=21.495,yend=21.5), colour=hcl(240,50,80)) + geom_label(aes(x=-157.75, y=21.495, label="N"),
+             size=3, label.padding=unit(1,"mm"), label.r=unit(0.4,"lines")) + ggtitle(label="Meiofauna")
 meio_map
 
 ggsave(meio_map,filename="./output/meio_map.pdf")
@@ -771,7 +780,9 @@ arms5<-left_join(arms2,arms4)
 
 
 
-arms_map<-ggmap(dmap) + geom_point(data = arms5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+arms_map<-ggmap(dmap) + geom_point(data = arms5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness/Site",order=1), size=guide_legend(title="Individual Count/Site"),order=2) + theme(axis.title=element_blank(), axis.text=element_text(color="black",size = 12), plot.title = element_text(hjust=0.5)) + geom_segment(arrow=arrow(length=unit(4,"mm"), type="closed", angle=40), 
+               aes(x=-157.75,xend=-157.75,y=21.495,yend=21.5), colour=hcl(240,50,80)) + geom_label(aes(x=-157.75, y=21.495, label="N"),
+             size=3, label.padding=unit(1,"mm"), label.r=unit(0.4,"lines")) + ggtitle(label="Autonomous Reef Monitoring Structure") 
 
 arms_map
 
@@ -866,7 +877,9 @@ trans5<-left_join(trans2,trans4)
 
 
 
-trans_map<-ggmap(dmap) + geom_point(data = trans5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Species Richness",), size=guide_legend(title="Individual Count")) + theme(axis.title=element_blank()) 
+trans_map<-ggmap(dmap) + geom_point(data = trans5, mapping = aes(x = decimalLongitude, y = decimalLatitude, size=individualCount, color=richness)) + scale_color_gradient(low = "green", high="red") + guides(color=guide_colorbar(title="Type Richness/Site",order=1), size=guide_legend(title="Individual Count/Site"),order=2) + theme(axis.title=element_blank(), axis.text=element_text(color="black",size = 12), plot.title = element_text(hjust=0.5)) + geom_segment(arrow=arrow(length=unit(4,"mm"), type="closed", angle=40), 
+               aes(x=-157.75,xend=-157.75,y=21.495,yend=21.5), colour=hcl(240,50,80)) + geom_label(aes(x=-157.75, y=21.495, label="N"),
+             size=3, label.padding=unit(1,"mm"), label.r=unit(0.4,"lines")) + ggtitle(label="Visual Transects")
 
 trans_map
 
